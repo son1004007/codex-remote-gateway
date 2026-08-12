@@ -1,0 +1,37 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Java / Gradle / Maven
+target/
+build/
+.gradle/
+.mvn/timing.properties
+
+# Node
+node_modules/
+dist/
+
+# Runtime
+logs/
+*.log
+*.pid
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local workspaces / state
+.local/
+data/
+workspaces/
