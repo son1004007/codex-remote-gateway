@@ -9,6 +9,7 @@ public final class AgentSession {
 
     private final String id;
     private final String workspaceId;
+    private String providerThreadId;
     private SessionStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
@@ -29,6 +30,10 @@ public final class AgentSession {
 
     public String workspaceId() {
         return workspaceId;
+    }
+
+    public String providerThreadId() {
+        return providerThreadId;
     }
 
     public SessionStatus status() {
@@ -52,6 +57,27 @@ public final class AgentSession {
             throw new IllegalStateException("Only active sessions accept input");
         }
         events.add(SessionEvent.user("USER_INPUT", input));
+        updatedAt = Instant.now();
+    }
+
+    public void bindProviderThreadId(String providerThreadId) {
+        if (providerThreadId == null || providerThreadId.isBlank()) {
+            throw new IllegalArgumentException("providerThreadId must not be blank");
+        }
+        if (this.providerThreadId != null && !this.providerThreadId.equals(providerThreadId)) {
+            throw new IllegalStateException("Provider thread cannot change after it is bound");
+        }
+        this.providerThreadId = providerThreadId;
+        updatedAt = Instant.now();
+    }
+
+    public void addAssistantMessage(String message) {
+        events.add(SessionEvent.assistant("AGENT_MESSAGE", message == null ? "" : message));
+        updatedAt = Instant.now();
+    }
+
+    public void addSystemEvent(String type, String message) {
+        events.add(SessionEvent.system(type, message));
         updatedAt = Instant.now();
     }
 
