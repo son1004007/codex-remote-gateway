@@ -2,6 +2,8 @@
 
 This document defines the first server-testable milestone for Codex Remote Gateway. Infrastructure identifiers, IP addresses, usernames, and credential references must remain outside this public repository.
 
+For the CI-gated two-server rollout used after normal development changes, also read `docs/AUTO-DEPLOY.md`.
+
 ## Target state
 
 The first deployable milestone is intentionally internal-only:
@@ -156,6 +158,8 @@ The script performs:
 4. Verifies that a Codex provider thread id was bound.
 5. Verifies an assistant event was returned.
 6. Verifies the response includes `gateway-ok`.
+7. Submits a second turn to the same gateway session.
+8. Verifies the same provider thread is resumed and the second expected response is returned.
 
 Pass criterion:
 
@@ -174,6 +178,24 @@ bash scripts/remote-target.sh <ssh-alias> smoke
 ```
 
 `login` uses `ssh -t` because device authentication is interactive.
+
+## Automatic rollout after AI-assisted changes
+
+After both targets have completed first-time key and Codex authentication setup, normal rollout can use `.github/workflows/deploy.yml`.
+
+The workflow does **not** deploy every commit to `main`. A complete change set is marked by a final update to `.deploy/trigger`. The corresponding CI run must succeed before deployment begins. This avoids deploying intermediate commits generated while ChatGPT/Codex is still modifying several files.
+
+Deployment order is always:
+
+```text
+exact CI-tested commit
+ -> primary server
+ -> smoke test
+ -> secondary server
+ -> smoke test
+```
+
+Connection details and SSH private keys are provided through generic GitHub Environments and are not stored in this public repository. See `docs/AUTO-DEPLOY.md` for the complete setup and security model.
 
 ## Acceptance criteria for "server-testable"
 
