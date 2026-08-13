@@ -45,6 +45,39 @@ When asked to test, QA, verify, find bugs, run regression testing, or review edg
 
 Testing findings and evidence should remain distinct from implementation changes. A theoretical risk is not a confirmed bug until reproduction or other sufficient evidence exists.
 
+## Automatic deployment trigger protocol
+
+The public repository uses `.deploy/trigger` as the only automatic deployment trigger. This exists because AI-assisted changes may be written as several sequential commits and intermediate commits must never be deployed merely because they reached `main`.
+
+Rules:
+
+1. Do not change `.deploy/trigger` while implementation, documentation synchronization, or testing is still in progress.
+2. Finish the complete change set first.
+3. Verify the relevant source tests and CI state before requesting deployment.
+4. Update `.deploy/trigger` exactly once as the final commit of a deployable change set.
+5. The deployment workflow must deploy the exact SHA whose CI run succeeded; it must not blindly deploy whatever happens to be latest on `main` later.
+6. The primary test server is deployed and smoke-tested first. The secondary server is updated only if the primary deployment succeeds.
+7. A failed deployment or smoke test is a failed change rollout. Do not update the trigger again merely to hide the failure; diagnose and fix the cause first.
+8. Documentation-only edits normally do not require a trigger update unless the user explicitly requests a server synchronization/deployment check.
+9. Never put SSH hostnames, IP addresses, ports, usernames, private keys, host-key material, ChatGPT authentication, or other private infrastructure identifiers in `.deploy/trigger`.
+10. Server connection details are supplied only through GitHub Environments and private inventory.
+
+When ChatGPT or another agent is explicitly asked to implement and roll out a change, the normal completion sequence is:
+
+```text
+implement
+ -> independent test/QA
+ -> push all source/docs/wiki updates
+ -> confirm CI-relevant checks
+ -> update .deploy/trigger once
+ -> CI for trigger commit
+ -> automatic primary deployment + smoke
+ -> automatic secondary deployment + smoke
+ -> report deployment evidence
+```
+
+Do not claim deployment succeeded until the deployment workflow provides evidence for both targets.
+
 ## Priority of evidence
 
 When sources disagree, use this order:
