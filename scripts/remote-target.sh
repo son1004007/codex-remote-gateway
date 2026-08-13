@@ -57,12 +57,12 @@ if [ -e "\$remote_dir" ] || [ -L "\$remote_dir" ]; then
     exit 1
   }
   origin_urls=\$(git config --get-all remote.origin.url || true)
-  effective_fetch_urls=\$(git remote -v | awk '\$1 == "origin" && \$3 == "(fetch)" {print \$2}')
-  [ "\$origin_urls" = "\$repo_url" ] && [ "\$effective_fetch_urls" = "\$repo_url" ] || {
+  effective_fetch_url=\$(git ls-remote --get-url origin)
+  [ "\$origin_urls" = "\$repo_url" ] && [ "\$effective_fetch_url" = "\$repo_url" ] || {
     echo "ERROR: remote origin does not match GATEWAY_REPO_URL; refusing deployment" >&2
     exit 1
   }
-  git fetch origin
+  git fetch origin refs/heads/main:refs/remotes/origin/main
   git merge-base --is-ancestor HEAD origin/main || {
     echo "ERROR: remote gateway has diverged from origin/main; refusing deployment" >&2
     exit 1

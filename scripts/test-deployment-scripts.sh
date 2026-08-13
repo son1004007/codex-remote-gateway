@@ -47,15 +47,16 @@ MOCK_SSH_COMMAND="$temp_dir/remote-command" PATH="$temp_dir/bin:$PATH" \
 grep -Fq 'git status --porcelain' "$temp_dir/remote-command"
 grep -Fq 'git rev-parse --abbrev-ref HEAD' "$temp_dir/remote-command"
 grep -Fq 'git config --get-all remote.origin.url' "$temp_dir/remote-command"
-grep -Fq 'git remote -v' "$temp_dir/remote-command"
-grep -Fq '[ "$origin_urls" = "$repo_url" ] && [ "$effective_fetch_urls" = "$repo_url" ]' "$temp_dir/remote-command"
-grep -Fq 'git fetch origin' "$temp_dir/remote-command"
+grep -Fq 'git ls-remote --get-url origin' "$temp_dir/remote-command"
+grep -Fq '[ "$origin_urls" = "$repo_url" ] && [ "$effective_fetch_url" = "$repo_url" ]' "$temp_dir/remote-command"
+grep -Fq 'git fetch origin refs/heads/main:refs/remotes/origin/main' "$temp_dir/remote-command"
 grep -Fq 'git merge --ff-only origin/main' "$temp_dir/remote-command"
 grep -Fq '[ -f .env ] || cp .env.example .env' "$temp_dir/remote-command"
 ! grep -Fq 'reset --hard' "$temp_dir/remote-command"
 ! grep -Fq 'branch --show-current' "$temp_dir/remote-command"
 ! grep -Fq 'remote get-url' "$temp_dir/remote-command"
 ! grep -Fq 'config --get remote.origin.url' "$temp_dir/remote-command"
+! grep -Fxq '  git fetch origin' "$temp_dir/remote-command"
 ! grep -Fq 'git fetch origin main' "$temp_dir/remote-command"
 
 multi_url_repo="$temp_dir/multi-url-repo"
@@ -73,12 +74,36 @@ git init -q "$rewrite_repo"
 git -C "$rewrite_repo" remote add origin https://example.invalid/expected.git
 git -C "$rewrite_repo" config url.https://unexpected.invalid/.insteadOf https://example.invalid/
 raw_origin=$(git -C "$rewrite_repo" config --get-all remote.origin.url || true)
-effective_fetch=$(git -C "$rewrite_repo" remote -v | awk '$1 == "origin" && $3 == "(fetch)" {print $2}')
+effective_fetch=$(git -C "$rewrite_repo" ls-remote --get-url origin)
 if [ "$raw_origin" = 'https://example.invalid/expected.git' ] \
   && [ "$effective_fetch" = 'https://example.invalid/expected.git' ]; then
   echo 'rewritten origin URL unexpectedly passed the effective-fetch guard' >&2
   exit 1
 fi
+
+fetch_remote="$temp_dir/fetch-remote.git"
+fetch_seed="$temp_dir/fetch-seed"
+fetch_victim="$temp_dir/fetch-victim"
+git init -q --bare "$fetch_remote"
+git init -q "$fetch_seed"
+git -C "$fetch_seed" config user.name deployment-test
+git -C "$fetch_seed" config user.email deployment-test@example.invalid
+printf 'main\n' > "$fetch_seed/tracked.txt"
+git -C "$fetch_seed" add tracked.txt
+git -C "$fetch_seed" commit -q -m main
+git -C "$fetch_seed" branch -M main
+git -C "$fetch_seed" remote add origin "$fetch_remote"
+git -C "$fetch_seed" push -q origin main
+main_sha=$(git -C "$fetch_seed" rev-parse HEAD)
+printf 'evil\n' >> "$fetch_seed/tracked.txt"
+git -C "$fetch_seed" commit -qam evil
+git -C "$fetch_seed" push -q origin HEAD:refs/heads/evil
+evil_sha=$(git -C "$fetch_seed" rev-parse HEAD)
+git clone -q --branch main --single-branch "$fetch_remote" "$fetch_victim"
+git -C "$fetch_victim" config remote.origin.fetch '+refs/heads/evil:refs/remotes/origin/main'
+git -C "$fetch_victim" fetch -q origin refs/heads/main:refs/remotes/origin/main
+[ "$(git -C "$fetch_victim" rev-parse origin/main)" = "$main_sha" ]
+[ "$(git -C "$fetch_victim" rev-parse origin/main)" != "$evil_sha" ]
 
 if MOCK_SSH_COMMAND="$temp_dir/unused" PATH="$temp_dir/bin:$PATH" \
   bash "$script_dir/remote-target.sh" test-target deploy ../unsafe >/dev/null 2>&1; then
