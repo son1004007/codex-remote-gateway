@@ -9,7 +9,7 @@ FROM registry.access.redhat.com/ubi9/nodejs-22:latest
 USER 0
 RUN dnf -y install java-21-openjdk-headless git curl && dnf clean all
 
-ARG CODEX_VERSION=latest
+ARG CODEX_VERSION=0.147.0
 RUN npm install -g "@openai/codex@${CODEX_VERSION}" \
     && codex --version \
     && npm cache clean --force
