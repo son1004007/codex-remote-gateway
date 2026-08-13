@@ -15,4 +15,8 @@ public record SessionEvent(
     public static SessionEvent user(String type, String message) {
         return new SessionEvent(type, "USER", message, Instant.now());
     }
+
+    public static SessionEvent assistant(String type, String message) {
+        return new SessionEvent(type, "ASSISTANT", message, Instant.now());
+    }
 }
