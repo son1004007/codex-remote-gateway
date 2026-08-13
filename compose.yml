@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Containerfile
+      args:
+        CODEX_VERSION: ${CODEX_VERSION:-latest}
+    image: codex-remote-gateway:${IMAGE_TAG:-local}
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_BIND_ADDRESS:-127.0.0.1}:${GATEWAY_PORT:-18080}:8080"
+    environment:
+      GATEWAY_AGENT_MODE: codex
+      GATEWAY_CODEX_COMMAND: codex
+      GATEWAY_CODEX_WORKSPACE_ROOT: /workspaces
+      GATEWAY_CODEX_HOME: /opt/app-root/src/.codex
+      GATEWAY_CODEX_APPROVAL_POLICY: ${GATEWAY_CODEX_APPROVAL_POLICY:-never}
+      GATEWAY_CODEX_SANDBOX: ${GATEWAY_CODEX_SANDBOX:-workspaceWrite}
+      GATEWAY_CODEX_MODEL: ${GATEWAY_CODEX_MODEL:-}
+      GATEWAY_CODEX_TURN_TIMEOUT: ${GATEWAY_CODEX_TURN_TIMEOUT:-10m}
+    volumes:
+      - "${WORKSPACE_ROOT:-./runtime/workspaces}:/workspaces${VOLUME_SUFFIX:-}"
+      - "${CODEX_HOME_HOST:-./runtime/codex-home}:/opt/app-root/src/.codex${VOLUME_SUFFIX:-}"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
