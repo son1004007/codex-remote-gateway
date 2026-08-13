@@ -20,3 +20,25 @@ Record only meaningful milestones, reversals, migrations, or incidents. Current 
 Reason:
 
 Long-lived AI-assisted repositories are vulnerable to context drift. The wiki provides durable repository-local context so future Codex/ChatGPT/other agent sessions can reconstruct decisions before modifying code.
+
+## 2026-08-13 — ISTQB-based default test rules added
+
+- Added `llm-wiki/TESTING_RULES.md`.
+- A generic request such as `test this` now maps to the repository's ISTQB-oriented test process.
+- Test work should be separated from implementation work as an independent Test Agent role when the execution environment supports separate agents.
+- Boundary value, equivalence partitioning, decision table, state transition, negative, regression, and risk-based testing are part of the default approach.
+
+## 2026-08-13 — M1 implementation started
+
+- Added Spring Boot 4.1.0 / Java 21 Maven project skeleton.
+- Added application entry point and Actuator health configuration.
+- Added `AgentSessionPort` as the initial agent-session boundary.
+- Added an in-memory adapter for development/testing; this is not a Codex integration.
+- Added REST APIs for session create/list/get, message submission, and cancellation.
+- Added validation/problem-detail error handling.
+- Added controller contract tests and session state-transition unit tests.
+- Added GitHub Actions Maven verification.
+
+Reason:
+
+The first implementation slice intentionally validates the control-plane domain/API boundary before coupling it to the current Codex App Server protocol. The real Codex adapter remains a separate next step and must be verified against the official interface before implementation.
