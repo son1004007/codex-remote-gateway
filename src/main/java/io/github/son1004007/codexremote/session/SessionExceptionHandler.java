@@ -16,6 +16,20 @@ public class SessionExceptionHandler {
         return detail;
     }
 
+    @ExceptionHandler(WorkspaceNotFoundException.class)
+    ProblemDetail handleWorkspaceNotFound(WorkspaceNotFoundException ex) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        detail.setTitle("Workspace not found");
+        return detail;
+    }
+
+    @ExceptionHandler(CodexExecutionException.class)
+    ProblemDetail handleCodexFailure(CodexExecutionException ex) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, ex.getMessage());
+        detail.setTitle("Codex execution failed");
+        return detail;
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     ProblemDetail handleConflict(IllegalStateException ex) {
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
