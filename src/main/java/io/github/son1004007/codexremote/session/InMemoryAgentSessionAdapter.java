@@ -1,5 +1,6 @@
 package io.github.son1004007.codexremote.session;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -9,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
+@ConditionalOnProperty(name = "gateway.agent.mode", havingValue = "in-memory", matchIfMissing = true)
 public class InMemoryAgentSessionAdapter implements AgentSessionPort {
 
     private final Map<String, AgentSession> sessions = new ConcurrentHashMap<>();
