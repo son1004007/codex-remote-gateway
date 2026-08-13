@@ -6,10 +6,18 @@ Last reviewed: 2026-08-13
 
 - `CONFIRMED`: Public GitHub repository exists at `son1004007/codex-remote-gateway`.
 - `CONFIRMED`: License is Apache License 2.0.
-- `CONFIRMED`: Product, architecture, security, AI gateway, and roadmap documents exist under `docs/`.
+- `CONFIRMED`: Product, architecture, security, AI gateway, roadmap, and testing-rule documents exist.
 - `IMPLEMENTED`: Repository-level AI working instructions exist in `AGENTS.md`.
 - `IMPLEMENTED`: LLM Wiki structure exists under `llm-wiki/`.
-- `PLANNED`: Application source code has not yet been implemented.
+- `IMPLEMENTED`: Spring Boot application skeleton exists.
+- `IMPLEMENTED`: Maven build uses Spring Boot 4.1.0 and Java 21.
+- `IMPLEMENTED`: Basic Actuator health/info exposure is configured.
+- `IMPLEMENTED`: A provider-neutral `AgentSessionPort` exists for coding-agent session lifecycle operations.
+- `IMPLEMENTED`: An in-memory session adapter exists for development/testing only.
+- `IMPLEMENTED`: REST endpoints exist for session create/list/get, message submission, and cancellation.
+- `IMPLEMENTED`: Validation and RFC-style problem responses exist for basic request/session errors.
+- `IMPLEMENTED`: Initial controller and session-state tests exist.
+- `IMPLEMENTED`: GitHub Actions Maven verification workflow exists.
 
 ## Current product direction
 
@@ -22,29 +30,49 @@ Last reviewed: 2026-08-13
 
 ## Current implementation milestone
 
-Roadmap status is effectively `M0 - Repository and decisions`.
+Roadmap status: `M1 - Single workspace, single Codex session` has started.
 
-Next vertical slice:
+Implemented M1 foundation:
 
 ```text
-Browser
- -> Spring Boot API
- -> one configured workspace
- -> Codex adapter
- -> one persistent session
- -> streamed events
+Spring Boot API
+ -> AgentSessionPort
+ -> InMemoryAgentSessionAdapter
+ -> session lifecycle/events
+```
+
+Next implementation slice:
+
+```text
+configured workspace
+ -> verified Codex App Server integration
+ -> real Codex adapter
+ -> streamed agent events
  -> Git diff
 ```
 
+## Important limitations
+
+- `CONFIRMED`: The current session adapter does not call Codex. It only stores lifecycle state/events in memory.
+- `CONFIRMED`: Session state is lost when the application process restarts.
+- `CONFIRMED`: No workspace path is currently resolved or authorized from `workspaceId`.
+- `CONFIRMED`: No browser/frontend exists yet.
+- `CONFIRMED`: No authentication exists yet.
+- `CONFIRMED`: No WebSocket/SSE event stream exists yet.
+- `CONFIRMED`: No Git inspection implementation exists yet.
+- `CONFIRMED`: No PostgreSQL persistence exists yet.
+
 ## What does not exist yet
 
-- Spring Boot application skeleton
+- real Codex integration adapter
+- Codex App Server transport/client implementation
+- workspace registry/path allowlist
 - frontend application
-- Codex integration adapter implementation
-- Codex App Server integration
-- WebSocket/SSE implementation
-- authentication implementation
+- WebSocket/SSE streaming implementation
+- authentication/authorization implementation
 - PostgreSQL schema/migrations
+- Git status/diff service
+- approval workflow
 - Docker runner
 - Gemini/Groq provider implementations
 - workflow engine
