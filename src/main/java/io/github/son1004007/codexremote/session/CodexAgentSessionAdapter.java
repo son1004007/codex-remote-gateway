@@ -4,6 +4,7 @@ import io.github.son1004007.codexremote.config.GatewayProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -22,7 +23,12 @@ public class CodexAgentSessionAdapter implements AgentSessionPort {
 
     public CodexAgentSessionAdapter(CodexAppServerClient client, GatewayProperties properties) {
         this.client = client;
-        this.workspaceRoot = Path.of(properties.getCodex().getWorkspaceRoot()).toAbsolutePath().normalize();
+        Path configuredRoot = Path.of(properties.getCodex().getWorkspaceRoot()).toAbsolutePath().normalize();
+        try {
+            this.workspaceRoot = configuredRoot.toRealPath();
+        } catch (IOException ex) {
+            throw new IllegalStateException("Configured workspace root is not accessible: " + configuredRoot, ex);
+        }
     }
 
     @Override
@@ -82,6 +88,14 @@ public class CodexAgentSessionAdapter implements AgentSessionPort {
         if (!candidate.startsWith(workspaceRoot) || !Files.isDirectory(candidate)) {
             throw new WorkspaceNotFoundException(workspaceId);
         }
-        return candidate;
+        try {
+            Path realCandidate = candidate.toRealPath();
+            if (!realCandidate.startsWith(workspaceRoot)) {
+                throw new WorkspaceNotFoundException(workspaceId);
+            }
+            return realCandidate;
+        } catch (IOException ex) {
+            throw new WorkspaceNotFoundException(workspaceId);
+        }
     }
 }
