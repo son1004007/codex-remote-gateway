@@ -25,31 +25,33 @@ public class SessionController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AgentSession create(@Valid @RequestBody CreateSessionRequest request) {
-        return sessions.create(request.workspaceId());
+    public SessionResponse create(@Valid @RequestBody CreateSessionRequest request) {
+        return SessionResponse.from(sessions.create(request.workspaceId()));
     }
 
     @GetMapping
-    public List<AgentSession> list() {
-        return sessions.list();
+    public List<SessionResponse> list() {
+        return sessions.list().stream()
+                .map(SessionResponse::from)
+                .toList();
     }
 
     @GetMapping("/{sessionId}")
-    public AgentSession get(@PathVariable String sessionId) {
-        return sessions.get(sessionId);
+    public SessionResponse get(@PathVariable String sessionId) {
+        return SessionResponse.from(sessions.get(sessionId));
     }
 
     @PostMapping("/{sessionId}/messages")
-    public AgentSession submit(
+    public SessionResponse submit(
             @PathVariable String sessionId,
             @Valid @RequestBody SubmitMessageRequest request
     ) {
-        return sessions.submit(sessionId, request.input());
+        return SessionResponse.from(sessions.submit(sessionId, request.input()));
     }
 
     @PostMapping("/{sessionId}/cancel")
-    public AgentSession cancel(@PathVariable String sessionId) {
-        return sessions.cancel(sessionId);
+    public SessionResponse cancel(@PathVariable String sessionId) {
+        return SessionResponse.from(sessions.cancel(sessionId));
     }
 
     public record CreateSessionRequest(@NotBlank String workspaceId) {
