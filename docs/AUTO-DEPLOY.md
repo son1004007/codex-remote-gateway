@@ -107,7 +107,7 @@ For each server it:
 
 1. connects with `BatchMode=yes`, `IdentitiesOnly=yes`, and strict host-key checking;
 2. clones the public repository if absent, otherwise fetches `origin/main`;
-3. hard-resets the deployment checkout to the exact CI-tested SHA;
+3. refuses a dirty, symlinked, origin-mismatched, or non-Git deployment path, then checks out the exact CI-tested SHA only from a clean checkout;
 4. verifies `git rev-parse HEAD` equals that SHA;
 5. runs `scripts/preflight.sh`;
 6. runs `scripts/deploy-local.sh`;

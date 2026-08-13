@@ -105,16 +105,32 @@ jobs:
             *) remote_dir="$HOME/$remote_dir" ;;
           esac
 
-          if [ -d "$remote_dir/.git" ]; then
+          if [ -e "$remote_dir" ] || [ -L "$remote_dir" ]; then
+            [ -d "$remote_dir" ] && [ ! -L "$remote_dir" ] && [ -d "$remote_dir/.git" ] || {
+              echo "ERROR: remote deployment path exists but is not a regular Git working tree: $remote_dir" >&2
+              exit 1
+            }
             cd "$remote_dir"
-            git fetch origin main
+            [ -z "$(git status --porcelain)" ] || {
+              echo "ERROR: remote gateway working tree is dirty; refusing deployment" >&2
+              exit 1
+            }
+            [ "$(git remote get-url origin)" = "$repo_url" ] || {
+              echo "ERROR: remote origin does not match expected repository; refusing deployment" >&2
+              exit 1
+            }
           else
             git clone "$repo_url" "$remote_dir"
             cd "$remote_dir"
-            git fetch origin main
           fi
 
-          git reset --hard "$deploy_sha"
+          git fetch origin main
+          git cat-file -e "$deploy_sha^{commit}"
+          git merge-base --is-ancestor "$deploy_sha" origin/main || {
+            echo "ERROR: requested deployment SHA is not reachable from origin/main" >&2
+            exit 1
+          }
+          git checkout --detach "$deploy_sha"
           test "$(git rev-parse HEAD)" = "$deploy_sha"
           bash scripts/preflight.sh
           bash scripts/deploy-local.sh
@@ -168,16 +184,32 @@ jobs:
             *) remote_dir="$HOME/$remote_dir" ;;
           esac
 
-          if [ -d "$remote_dir/.git" ]; then
+          if [ -e "$remote_dir" ] || [ -L "$remote_dir" ]; then
+            [ -d "$remote_dir" ] && [ ! -L "$remote_dir" ] && [ -d "$remote_dir/.git" ] || {
+              echo "ERROR: remote deployment path exists but is not a regular Git working tree: $remote_dir" >&2
+              exit 1
+            }
             cd "$remote_dir"
-            git fetch origin main
+            [ -z "$(git status --porcelain)" ] || {
+              echo "ERROR: remote gateway working tree is dirty; refusing deployment" >&2
+              exit 1
+            }
+            [ "$(git remote get-url origin)" = "$repo_url" ] || {
+              echo "ERROR: remote origin does not match expected repository; refusing deployment" >&2
+              exit 1
+            }
           else
             git clone "$repo_url" "$remote_dir"
             cd "$remote_dir"
-            git fetch origin main
           fi
 
-          git reset --hard "$deploy_sha"
+          git fetch origin main
+          git cat-file -e "$deploy_sha^{commit}"
+          git merge-base --is-ancestor "$deploy_sha" origin/main || {
+            echo "ERROR: requested deployment SHA is not reachable from origin/main" >&2
+            exit 1
+          }
+          git checkout --detach "$deploy_sha"
           test "$(git rev-parse HEAD)" = "$deploy_sha"
           bash scripts/preflight.sh
           bash scripts/deploy-local.sh
