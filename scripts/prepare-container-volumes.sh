@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "$0")" && pwd)
+repo_dir=$(cd "$script_dir/.." && pwd)
+cd "$repo_dir"
+source "$script_dir/load-deployment-env.sh"
+load_deployment_env "$repo_dir/.env"
+
 if docker compose version >/dev/null 2>&1; then
   compose=(docker compose)
 elif command -v docker-compose >/dev/null 2>&1; then

@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "$0")" && pwd)
+repo_dir=$(cd "$script_dir/.." && pwd)
+cd "$repo_dir"
+source "$script_dir/load-deployment-env.sh"
+load_deployment_env "$repo_dir/.env"
+
 base_url=${GATEWAY_URL:-http://127.0.0.1:${GATEWAY_PORT:-18080}}
 
 health=$(curl -sS "$base_url/actuator/health")

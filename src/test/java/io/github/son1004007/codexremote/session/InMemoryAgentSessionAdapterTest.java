@@ -36,4 +36,16 @@ class InMemoryAgentSessionAdapterTest {
         assertThatThrownBy(() -> adapter.get("missing"))
                 .isInstanceOf(SessionNotFoundException.class);
     }
+
+    @Test
+    void allowsOnlyOneActiveSessionPerWorkspace() {
+        AgentSession first = adapter.create("demo");
+
+        assertThatThrownBy(() -> adapter.create("demo"))
+                .isInstanceOf(WorkspaceSessionConflictException.class);
+
+        adapter.cancel(first.id());
+
+        assertThat(adapter.create("demo").workspaceId()).isEqualTo("demo");
+    }
 }

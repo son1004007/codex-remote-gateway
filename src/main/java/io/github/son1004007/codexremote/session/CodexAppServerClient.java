@@ -123,7 +123,6 @@ public class CodexAppServerClient {
         ObjectNode request = baseRequest(2, "thread/resume");
         ObjectNode params = request.putObject("params");
         params.put("threadId", threadId);
-        params.put("excludeTurns", true);
         applyThreadOptions(params, workspace, codex);
         send(writer, request);
     }

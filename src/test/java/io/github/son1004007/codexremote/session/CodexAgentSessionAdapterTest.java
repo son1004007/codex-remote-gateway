@@ -28,12 +28,53 @@ class CodexAgentSessionAdapterTest {
     }
 
     @Test
+    void allowsOnlyOneActiveSessionPerWorkspace() throws Exception {
+        Path root = Files.createDirectory(tempDir.resolve("workspaces"));
+        Files.createDirectory(root.resolve("project-a"));
+        CodexAgentSessionAdapter adapter = adapter(root);
+
+        AgentSession first = adapter.create("project-a");
+
+        assertThatThrownBy(() -> adapter.create("project-a"))
+                .isInstanceOf(WorkspaceSessionConflictException.class);
+
+        adapter.cancel(first.id());
+
+        assertThatCode(() -> adapter.create("project-a")).doesNotThrowAnyException();
+    }
+
+    @Test
     void rejectsParentTraversal() throws Exception {
         Path root = Files.createDirectory(tempDir.resolve("workspaces"));
         Files.createDirectory(tempDir.resolve("outside"));
         CodexAgentSessionAdapter adapter = adapter(root);
 
         assertThatThrownBy(() -> adapter.create("../outside"))
+                .isInstanceOf(WorkspaceNotFoundException.class);
+    }
+
+    @Test
+    void rejectsWorkspaceRootAliasesAndNestedPaths() throws Exception {
+        Path root = Files.createDirectory(tempDir.resolve("workspaces"));
+        Files.createDirectory(root.resolve("project-a"));
+        CodexAgentSessionAdapter adapter = adapter(root);
+
+        assertThatThrownBy(() -> adapter.create("."))
+                .isInstanceOf(WorkspaceNotFoundException.class);
+        assertThatThrownBy(() -> adapter.create("project-a/.."))
+                .isInstanceOf(WorkspaceNotFoundException.class);
+        assertThatThrownBy(() -> adapter.create("project-a/."))
+                .isInstanceOf(WorkspaceNotFoundException.class);
+        assertThatThrownBy(() -> adapter.create("nested/project-a"))
+                .isInstanceOf(WorkspaceNotFoundException.class);
+    }
+
+    @Test
+    void rejectsInvalidWorkspacePathCharacters() throws Exception {
+        Path root = Files.createDirectory(tempDir.resolve("workspaces"));
+        CodexAgentSessionAdapter adapter = adapter(root);
+
+        assertThatThrownBy(() -> adapter.create("\0"))
                 .isInstanceOf(WorkspaceNotFoundException.class);
     }
 

@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -18,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CodexAgentSessionAdapter implements AgentSessionPort {
 
     private final Map<String, AgentSession> sessions = new ConcurrentHashMap<>();
+    private final Map<String, String> activeSessionIdsByWorkspace = new ConcurrentHashMap<>();
     private final CodexAppServerClient client;
     private final Path workspaceRoot;
 
@@ -35,6 +37,9 @@ public class CodexAgentSessionAdapter implements AgentSessionPort {
     public AgentSession create(String workspaceId) {
         resolveWorkspace(workspaceId);
         String id = UUID.randomUUID().toString();
+        if (activeSessionIdsByWorkspace.putIfAbsent(workspaceId, id) != null) {
+            throw new WorkspaceSessionConflictException(workspaceId);
+        }
         AgentSession session = new AgentSession(id, workspaceId);
         sessions.put(id, session);
         return session;
@@ -72,6 +77,7 @@ public class CodexAgentSessionAdapter implements AgentSessionPort {
         AgentSession session = get(sessionId);
         synchronized (session) {
             session.cancel();
+            activeSessionIdsByWorkspace.remove(session.workspaceId(), session.id());
             return session;
         }
     }
@@ -84,17 +90,27 @@ public class CodexAgentSessionAdapter implements AgentSessionPort {
     }
 
     private Path resolveWorkspace(String workspaceId) {
-        Path candidate = workspaceRoot.resolve(workspaceId).normalize();
-        if (!candidate.startsWith(workspaceRoot) || !Files.isDirectory(candidate)) {
+        if (workspaceId == null
+                || workspaceId.isBlank()
+                || ".".equals(workspaceId)
+                || "..".equals(workspaceId)
+                || workspaceId.indexOf('\0') >= 0
+                || workspaceId.contains("/")
+                || workspaceId.contains("\\")) {
             throw new WorkspaceNotFoundException(workspaceId);
         }
+
         try {
+            Path candidate = workspaceRoot.resolve(workspaceId);
+            if (!Files.isDirectory(candidate)) {
+                throw new WorkspaceNotFoundException(workspaceId);
+            }
             Path realCandidate = candidate.toRealPath();
-            if (!realCandidate.startsWith(workspaceRoot)) {
+            if (!workspaceRoot.equals(realCandidate.getParent())) {
                 throw new WorkspaceNotFoundException(workspaceId);
             }
             return realCandidate;
-        } catch (IOException ex) {
+        } catch (IOException | InvalidPathException ex) {
             throw new WorkspaceNotFoundException(workspaceId);
         }
     }

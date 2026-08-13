@@ -1,5 +1,6 @@
 package io.github.son1004007.codexremote.session;
 
+import io.github.son1004007.codexremote.config.GatewayProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -18,6 +20,14 @@ class SessionControllerTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    GatewayProperties gatewayProperties;
+
+    @Test
+    void usesCurrentCodexSandboxTokenByDefault() {
+        assertThat(gatewayProperties.getCodex().getSandbox()).isEqualTo("workspace-write");
+    }
 
     @Test
     void createsSession() throws Exception {
@@ -29,6 +39,22 @@ class SessionControllerTest {
                 .andExpect(jsonPath("$.workspaceId").value("demo"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.events[0].type").value("SESSION_STARTED"));
+    }
+
+    @Test
+    void rejectsSecondActiveSessionForSameWorkspace() throws Exception {
+        String request = "{\"workspaceId\":\"exclusive-workspace\"}";
+
+        mockMvc.perform(post("/api/v1/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Invalid session state"));
     }
 
     @Test

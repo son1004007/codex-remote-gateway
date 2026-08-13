@@ -13,7 +13,7 @@ gateway:
     workspace-root: ${GATEWAY_CODEX_WORKSPACE_ROOT:/workspaces}
     codex-home: ${GATEWAY_CODEX_HOME:}
     approval-policy: ${GATEWAY_CODEX_APPROVAL_POLICY:never}
-    sandbox: ${GATEWAY_CODEX_SANDBOX:workspaceWrite}
+    sandbox: ${GATEWAY_CODEX_SANDBOX:workspace-write}
     model: ${GATEWAY_CODEX_MODEL:}
     turn-timeout: ${GATEWAY_CODEX_TURN_TIMEOUT:10m}
 

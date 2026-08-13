@@ -35,7 +35,7 @@ public class GatewayProperties {
         private String workspaceRoot = "/workspaces";
         private String codexHome = "";
         private String approvalPolicy = "never";
-        private String sandbox = "workspaceWrite";
+        private String sandbox = "workspace-write";
         private String model = "";
         private Duration turnTimeout = Duration.ofMinutes(10);
 

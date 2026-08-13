@@ -4,6 +4,8 @@ set -euo pipefail
 script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_dir=$(cd "$script_dir/.." && pwd)
 cd "$repo_dir"
+source "$script_dir/load-deployment-env.sh"
+load_deployment_env "$repo_dir/.env"
 
 bash "$script_dir/preflight.sh"
 bash "$script_dir/prepare-runtime.sh"

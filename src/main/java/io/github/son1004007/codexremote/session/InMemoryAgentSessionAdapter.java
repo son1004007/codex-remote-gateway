@@ -14,10 +14,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class InMemoryAgentSessionAdapter implements AgentSessionPort {
 
     private final Map<String, AgentSession> sessions = new ConcurrentHashMap<>();
+    private final Map<String, String> activeSessionIdsByWorkspace = new ConcurrentHashMap<>();
 
     @Override
     public AgentSession create(String workspaceId) {
         String id = UUID.randomUUID().toString();
+        if (activeSessionIdsByWorkspace.putIfAbsent(workspaceId, id) != null) {
+            throw new WorkspaceSessionConflictException(workspaceId);
+        }
         AgentSession session = new AgentSession(id, workspaceId);
         sessions.put(id, session);
         return session;
@@ -43,6 +47,7 @@ public class InMemoryAgentSessionAdapter implements AgentSessionPort {
     public AgentSession cancel(String sessionId) {
         AgentSession session = get(sessionId);
         session.cancel();
+        activeSessionIdsByWorkspace.remove(session.workspaceId(), session.id());
         return session;
     }
 

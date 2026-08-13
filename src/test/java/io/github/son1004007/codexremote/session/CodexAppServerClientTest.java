@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @EnabledOnOs(OS.LINUX)
 class CodexAppServerClientTest {
@@ -43,6 +44,25 @@ class CodexAppServerClientTest {
         assertThat(result.message()).isEqualTo("gateway-ok");
     }
 
+    @Test
+    void mapsInvalidThreadResumeToCodexExecutionFailure() throws Exception {
+        Path fakeCodex = writeFakeCodex();
+        CodexAppServerClient client = new CodexAppServerClient(properties(fakeCodex), new ObjectMapper());
+
+        assertThatThrownBy(() -> client.execute("missing-thread", tempDir, "again"))
+                .isInstanceOf(CodexExecutionException.class)
+                .hasMessageContaining("request failed");
+    }
+
+    @Test
+    void mapsCodexProcessStartFailureToCodexExecutionFailure() {
+        CodexAppServerClient client = new CodexAppServerClient(properties(tempDir.resolve("missing-codex")), new ObjectMapper());
+
+        assertThatThrownBy(() -> client.execute(null, tempDir, "hello"))
+                .isInstanceOf(CodexExecutionException.class)
+                .hasMessageContaining("Failed to start Codex app-server");
+    }
+
     private GatewayProperties properties(Path fakeCodex) {
         GatewayProperties properties = new GatewayProperties();
         properties.getCodex().setCommand(fakeCodex.toAbsolutePath().toString());
@@ -65,10 +85,27 @@ class CodexAppServerClientTest {
                     *'"method":"initialized"'*)
                       ;;
                     *'"method":"thread/start"'*)
-                      printf '%s\\n' '{"id":2,"result":{"thread":{"id":"thread-test"}}}'
+                      case "$line" in
+                        *'"sandbox":"workspace-write"'*)
+                          printf '%s\\n' '{"id":2,"result":{"thread":{"id":"thread-test"}}}'
+                          ;;
+                        *)
+                          printf '%s\\n' '{"id":2,"error":{"message":"sandbox must use the current Codex CLI token"}}'
+                          ;;
+                      esac
                       ;;
                     *'"method":"thread/resume"'*)
-                      printf '%s\\n' '{"id":2,"result":{"thread":{"id":"thread-test"}}}'
+                      case "$line" in
+                        *'"threadId":"missing-thread"'*)
+                          printf '%s\\n' '{"id":2,"error":{"message":"no rollout found"}}'
+                          ;;
+                        *'"excludeTurns"'*)
+                          printf '%s\\n' '{"id":2,"error":{"message":"excludeTurns requires experimentalApi"}}'
+                          ;;
+                        *)
+                          printf '%s\\n' '{"id":2,"result":{"thread":{"id":"thread-test"}}}'
+                          ;;
+                      esac
                       ;;
                     *'"method":"turn/start"'*)
                       printf '%s\\n' '{"id":3,"result":{"turn":{"id":"turn-test","status":"inProgress","items":[],"error":null}}}'

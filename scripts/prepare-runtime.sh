@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "$0")" && pwd)
+repo_dir=$(cd "$script_dir/.." && pwd)
+cd "$repo_dir"
+source "$script_dir/load-deployment-env.sh"
+load_deployment_env "$repo_dir/.env"
+
 workspace_root=${WORKSPACE_ROOT:-./runtime/workspaces}
 codex_home=${CODEX_HOME_HOST:-./runtime/codex-home}
 

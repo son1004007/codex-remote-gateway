@@ -67,3 +67,18 @@ Private infrastructure planning:
 - A separate private device-inventory deployment record selects the IDC Red Hat-family Docker host as primary compatibility validation and the Ubuntu RTX2080 server as secondary validation/future local-model host.
 - Infrastructure identifiers and credential references remain outside this public repository.
 - Actual host deployment is still blocked from this ChatGPT execution environment because no SSH execution channel/private host credential is exposed to the runtime.
+
+## 2026-08-13 — Pre-deployment protocol and safety corrections
+
+- Corrected the Codex App Server sandbox token to `workspace-write`, which is accepted by the pinned CLI protocol.
+- Removed unnegotiated `thread/resume.excludeTurns` so resume does not require an experimental capability.
+- Hardened workspace selection to one direct allowed child and reject root aliases, nested paths, invalid path input, and symlink escape.
+- Limited M1 to one active session per workspace, releasing the workspace when that session is cancelled.
+- Replaced destructive remote `git reset --hard` deployment behavior with clone-or-clean-fast-forward synchronization that refuses unsafe remote states.
+- Added a non-evaluating deployment environment loader so preflight, runtime preparation, login, smoke, and Compose use consistent path/SELinux settings.
+- Made Codex login status-first: a valid persistent login is retained without starting device authentication.
+- Added independent QA and regression coverage for protocol compatibility, deployment safety, error mapping, workspace isolation, session exclusivity, and health/login failure paths.
+
+Reason:
+
+These corrections are prerequisites for meaningful private-host E2E validation. They do not constitute a claim that either private target has been deployed or authenticated.

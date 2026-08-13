@@ -2,11 +2,13 @@
 
 This file tracks known defects, architectural risks, and technical debt. It is not a feature backlog.
 
-## KI-001: No application implementation yet
+## KI-001: Planning-only repository statement
 
-Status: `CONFIRMED`
+Status: `DEPRECATED`
 
-The repository currently contains planning and documentation only. Any statement that the web control plane, Codex adapter, persistence, or provider gateway is already runnable is incorrect.
+The original planning-only statement is obsolete. The repository now contains a Spring Boot control-plane slice, session adapters, a Codex App Server client, container/deployment automation, and regression tests. It must not be used to determine current implementation status.
+
+See `CURRENT_STATE.md` and the source/test tree for the current evidence. Remote server validation remains separate and must be proven by host command output.
 
 ## KI-002: Codex integration assumptions can become stale
 

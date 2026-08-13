@@ -25,6 +25,8 @@ jobs:
         run: mvn --batch-mode verify
       - name: Verify shell syntax
         run: bash -n scripts/*.sh
+      - name: Verify deployment scripts
+        run: bash scripts/test-deployment-scripts.sh
       - name: Verify Compose model
         run: docker compose -f compose.yml config >/dev/null
 

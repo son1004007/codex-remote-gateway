@@ -100,7 +100,13 @@ Run:
 bash scripts/codex-login.sh
 ```
 
-The helper runs:
+The helper first runs:
+
+```text
+codex login status
+```
+
+When that succeeds, it preserves the existing persistent login and exits without device authentication. Only when the status check fails does it run:
 
 ```text
 codex login --device-auth
@@ -177,7 +183,17 @@ bash scripts/remote-target.sh <ssh-alias> login
 bash scripts/remote-target.sh <ssh-alias> smoke
 ```
 
-`login` uses `ssh -t` because device authentication is interactive.
+`login` uses `ssh -t` because device authentication is interactive. The safe validation sequence is:
+
+```bash
+bash scripts/remote-target.sh <ssh-alias> sync
+bash scripts/remote-target.sh <ssh-alias> preflight
+bash scripts/remote-target.sh <ssh-alias> deploy
+bash scripts/remote-target.sh <ssh-alias> login
+bash scripts/remote-target.sh <ssh-alias> smoke
+```
+
+`sync` creates a clone on a new path, or updates an existing checkout only when it is clean, on `main`, has the expected origin, and can fast-forward to `origin/main`. It never resets a remote working tree. If a remote `.env` does not yet exist, it is initialized from `.env.example`; lifecycle scripts load the documented `.env` variables without evaluating it as shell code, and explicitly exported values take precedence.
 
 ## Automatic rollout after AI-assisted changes
 
@@ -212,7 +228,7 @@ A target is considered validated only when all conditions below are met:
 - Session creation returns HTTP 201.
 - First Codex turn completes without HTTP 502.
 - Response contains a provider thread id and assistant message.
-- A second message on the same gateway session resumes the same Codex thread.
+- A second message on the same gateway session resumes the same Codex thread and returns `gateway-resume-ok`.
 
 ## Rollback
 
@@ -239,6 +255,7 @@ This milestone is not production-ready.
 
 - Gateway API sessions are in memory and disappear when Spring Boot restarts.
 - Codex threads persist under `CODEX_HOME`, but gateway-to-thread mapping is not yet persisted.
+- M1 permits one active gateway session per workspace; cancel it before creating another session for the same workspace.
 - Each submitted gateway turn starts a fresh `codex app-server` process, then resumes or starts the stored Codex thread and terminates the process after `turn/completed`.
 - HTTP submission is synchronous; SSE/WebSocket streaming is not implemented yet.
 - `cancel` changes gateway session state between turns; active `turn/interrupt` wiring is not implemented yet.

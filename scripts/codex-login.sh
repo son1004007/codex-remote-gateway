@@ -4,6 +4,8 @@ set -euo pipefail
 script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_dir=$(cd "$script_dir/.." && pwd)
 cd "$repo_dir"
+source "$script_dir/load-deployment-env.sh"
+load_deployment_env "$repo_dir/.env"
 
 if docker compose version >/dev/null 2>&1; then
   compose=(docker compose)
@@ -24,5 +26,11 @@ If device authorization is disabled in ChatGPT security settings, enable it firs
 Do not copy auth.json or device codes into this repository.
 EOF
 
+if "${compose[@]}" run --rm --entrypoint codex gateway login status; then
+  printf 'Existing Codex login: PASS\n'
+  exit 0
+fi
+
+printf 'No valid persistent Codex login found; starting device authentication.\n'
 "${compose[@]}" run --rm --entrypoint codex gateway login --device-auth
 "${compose[@]}" run --rm --entrypoint codex gateway login status
