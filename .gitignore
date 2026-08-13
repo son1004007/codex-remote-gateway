@@ -17,6 +17,7 @@ dist/
 logs/
 *.log
 *.pid
+runtime/
 
 # Environment and secrets
 .env
