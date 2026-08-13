@@ -6,18 +6,20 @@ Last reviewed: 2026-08-13
 
 - `CONFIRMED`: Public GitHub repository exists at `son1004007/codex-remote-gateway`.
 - `CONFIRMED`: License is Apache License 2.0.
-- `CONFIRMED`: Product, architecture, security, AI gateway, roadmap, and testing-rule documents exist.
-- `IMPLEMENTED`: Repository-level AI working instructions exist in `AGENTS.md`.
-- `IMPLEMENTED`: LLM Wiki structure exists under `llm-wiki/`.
-- `IMPLEMENTED`: Spring Boot application skeleton exists.
-- `IMPLEMENTED`: Maven build uses Spring Boot 4.1.0 and Java 21.
-- `IMPLEMENTED`: Basic Actuator health/info exposure is configured.
-- `IMPLEMENTED`: A provider-neutral `AgentSessionPort` exists for coding-agent session lifecycle operations.
-- `IMPLEMENTED`: An in-memory session adapter exists for development/testing only.
+- `IMPLEMENTED`: Repository-level AI instructions and LLM Wiki exist.
+- `IMPLEMENTED`: Spring Boot 4.1.0 / Java 21 backend exists.
+- `IMPLEMENTED`: Basic Actuator health/info exposure exists.
+- `IMPLEMENTED`: Provider-neutral `AgentSessionPort` exists.
+- `IMPLEMENTED`: In-memory adapter exists for development/tests.
+- `IMPLEMENTED`: Codex-backed adapter exists and communicates with `codex app-server` over JSONL stdio.
+- `IMPLEMENTED`: Codex initialize, thread start/resume, turn start, streamed agent-message collection, and turn-completed handling exist.
+- `IMPLEMENTED`: Gateway sessions retain the Codex provider thread ID in memory so the next request can resume the same thread.
+- `IMPLEMENTED`: Workspace resolution is restricted to the configured workspace root and rejects parent traversal, absolute-path escape, and symlink escape.
 - `IMPLEMENTED`: REST endpoints exist for session create/list/get, message submission, and cancellation.
-- `IMPLEMENTED`: Validation and RFC-style problem responses exist for basic request/session errors.
-- `IMPLEMENTED`: Initial controller and session-state tests exist.
-- `IMPLEMENTED`: GitHub Actions Maven verification workflow exists.
+- `IMPLEMENTED`: Validation and problem-detail responses exist for request/session/workspace/Codex errors.
+- `IMPLEMENTED`: UBI 9 + Node.js 22 + Java 21 + pinned Codex CLI container definition exists.
+- `IMPLEMENTED`: Docker Compose, preflight, runtime-volume preparation, device-login, deploy, remote-target, and two-turn smoke-test automation exists.
+- `IMPLEMENTED`: GitHub Actions verifies Java tests, shell syntax, Compose configuration, UBI image build, and image-local Codex CLI version.
 
 ## Current product direction
 
@@ -25,57 +27,63 @@ Last reviewed: 2026-08-13
 - `CONFIRMED`: Codex is the initial coding-agent target.
 - `CONFIRMED`: The system should support web-based session control, event streaming, approval handling, and Git status/diff review.
 - `CONFIRMED`: A Spring Boot AI Gateway is planned for provider-neutral access to multiple AI providers.
-- `PLANNED`: Initial providers include OpenAI/Codex-compatible access, Gemini, and Groq.
-- `PLANNED`: Multi-agent workflow orchestration is a later phase, not MVP scope.
+- `PLANNED`: Initial additional providers include Gemini, Groq, and a separately isolated local-model provider.
+- `PLANNED`: Multi-agent workflow orchestration is a later phase, not current M1 scope.
 
 ## Current implementation milestone
 
-Roadmap status: `M1 - Single workspace, single Codex session` has started.
+Roadmap status: `M1 - Single workspace, single Codex session` is server-testable but not yet validated on the selected private infrastructure.
 
-Implemented M1 foundation:
+Current path:
 
 ```text
 Spring Boot API
  -> AgentSessionPort
- -> InMemoryAgentSessionAdapter
- -> session lifecycle/events
+ -> CodexAgentSessionAdapter
+ -> Codex App Server process per submitted turn
+ -> ChatGPT-authenticated Codex state under persistent CODEX_HOME
+ -> mounted workspace
 ```
 
-Next implementation slice:
+Deployment path:
 
 ```text
-configured workspace
- -> verified Codex App Server integration
- -> real Codex adapter
- -> streamed agent events
- -> Git diff
+Red Hat UBI 9 container
+ -> host loopback port
+ -> persistent Codex home bind mount
+ -> configured workspace root bind mount
+ -> device-authenticated Codex CLI
+ -> two-turn smoke test
 ```
+
+## Verification evidence
+
+- `CONFIRMED`: Java regression tests include session lifecycle, API behavior, Codex App Server fake-protocol start/resume, and workspace-isolation cases.
+- `CONFIRMED`: An ISTQB-oriented negative test reproduced a symlink workspace escape before the implementation was fixed.
+- `CONFIRMED`: The symlink-escape regression test passes after real-path enforcement.
+- `CONFIRMED`: An initial UBI container build exposed a `curl-minimal` versus `curl` package conflict; the redundant `curl` install was removed.
+- `UNKNOWN`: Real ChatGPT-authenticated Codex turn behavior on the selected private servers remains unverified until the remote commands are executed there.
 
 ## Important limitations
 
-- `CONFIRMED`: The current session adapter does not call Codex. It only stores lifecycle state/events in memory.
-- `CONFIRMED`: Session state is lost when the application process restarts.
-- `CONFIRMED`: No workspace path is currently resolved or authorized from `workspaceId`.
+- `CONFIRMED`: Gateway session state remains in memory and is lost when Spring Boot restarts.
+- `CONFIRMED`: Codex thread files can persist in `CODEX_HOME`, but the gateway session-to-thread mapping is not persisted.
+- `CONFIRMED`: A fresh `codex app-server` process is started for each HTTP message submission and stopped after turn completion.
+- `CONFIRMED`: Message submission is synchronous; browser event streaming is not implemented.
+- `CONFIRMED`: `cancel` prevents later gateway submissions but does not yet interrupt a currently executing Codex turn.
+- `CONFIRMED`: Unexpected App Server approval requests are declined by the M1 client; an approval UI is not implemented.
+- `CONFIRMED`: No HTTP authentication exists; deployment must remain loopback/private-network protected.
 - `CONFIRMED`: No browser/frontend exists yet.
-- `CONFIRMED`: No authentication exists yet.
-- `CONFIRMED`: No WebSocket/SSE event stream exists yet.
-- `CONFIRMED`: No Git inspection implementation exists yet.
+- `CONFIRMED`: No Git status/diff implementation exists yet.
 - `CONFIRMED`: No PostgreSQL persistence exists yet.
+- `CONFIRMED`: No local GPU provider exists yet; the current Codex integration does not use host GPUs.
 
-## What does not exist yet
+## Private infrastructure status
 
-- real Codex integration adapter
-- Codex App Server transport/client implementation
-- workspace registry/path allowlist
-- frontend application
-- WebSocket/SSE streaming implementation
-- authentication/authorization implementation
-- PostgreSQL schema/migrations
-- Git status/diff service
-- approval workflow
-- Docker runner
-- Gemini/Groq provider implementations
-- workflow engine
-- deployment automation
+Infrastructure identifiers are intentionally not copied into this public repository.
 
-Do not describe any of these as implemented until verified in source code.
+- `PLANNED`: Primary validation target is the selected Red Hat-family IDC Docker host documented in the private device inventory.
+- `PLANNED`: Secondary validation target is the selected Ubuntu RTX2080 host documented in the private device inventory.
+- `BLOCKED`: Actual remote deployment from this ChatGPT execution environment is blocked because no SSH execution channel/private host credentials are available to the runtime.
+
+Do not describe either target as deployed or validated until host command output proves the acceptance criteria in `docs/DEPLOYMENT.md`.
