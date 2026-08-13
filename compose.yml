@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Containerfile
       args:
-        CODEX_VERSION: ${CODEX_VERSION:-latest}
+        CODEX_VERSION: ${CODEX_VERSION:-0.147.0}
     image: codex-remote-gateway:${IMAGE_TAG:-local}
     restart: unless-stopped
     ports:
