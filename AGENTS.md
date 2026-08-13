@@ -30,6 +30,21 @@ Then inspect the relevant source code and existing docs before modifying anythin
 - Preserve the security boundaries documented in `docs/SECURITY-DESIGN.md`.
 - Do not silently weaken approval, authentication, workspace isolation, Git safety, or auditability.
 
+## Independent testing rule
+
+When asked to test, QA, verify, find bugs, run regression testing, or review edge cases:
+
+1. Read `llm-wiki/TESTING_RULES.md` before designing tests.
+2. If the execution environment supports subagents, delegate verification to a separate test agent that did not implement the change.
+3. The test agent must independently derive expected behavior from requirements, decisions, constraints, and interfaces rather than trusting implementation assumptions.
+4. The test agent must apply relevant ISTQB-style techniques such as equivalence partitioning, boundary value analysis, decision-table testing, state-transition testing, negative testing, and risk-based prioritization.
+5. The test agent reports defects before the implementation agent fixes them.
+6. After a fix, rerun the failed cases and relevant regression tests.
+7. If separate subagents are unavailable, explicitly perform a separate testing phase and state that runtime-level agent independence was unavailable.
+8. Never claim all tests passed when relevant tests were blocked, skipped, or not executable.
+
+Testing findings and evidence should remain distinct from implementation changes. A theoretical risk is not a confirmed bug until reproduction or other sufficient evidence exists.
+
 ## Priority of evidence
 
 When sources disagree, use this order:
