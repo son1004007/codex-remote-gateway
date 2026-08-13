@@ -2,6 +2,21 @@ spring:
   application:
     name: codex-remote-gateway
 
+server:
+  shutdown: graceful
+
+gateway:
+  agent:
+    mode: ${GATEWAY_AGENT_MODE:in-memory}
+  codex:
+    command: ${GATEWAY_CODEX_COMMAND:codex}
+    workspace-root: ${GATEWAY_CODEX_WORKSPACE_ROOT:/workspaces}
+    codex-home: ${GATEWAY_CODEX_HOME:}
+    approval-policy: ${GATEWAY_CODEX_APPROVAL_POLICY:never}
+    sandbox: ${GATEWAY_CODEX_SANDBOX:workspaceWrite}
+    model: ${GATEWAY_CODEX_MODEL:}
+    turn-timeout: ${GATEWAY_CODEX_TURN_TIMEOUT:10m}
+
 management:
   endpoints:
     web:
