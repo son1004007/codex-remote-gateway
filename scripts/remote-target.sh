@@ -56,7 +56,8 @@ if [ -e "\$remote_dir" ] || [ -L "\$remote_dir" ]; then
     echo "ERROR: remote gateway is not on main; refusing deployment" >&2
     exit 1
   }
-  [ "\$(git config --get remote.origin.url)" = "\$repo_url" ] || {
+  origin_urls=\$(git config --get-all remote.origin.url || true)
+  [ "\$origin_urls" = "\$repo_url" ] || {
     echo "ERROR: remote origin does not match GATEWAY_REPO_URL; refusing deployment" >&2
     exit 1
   }

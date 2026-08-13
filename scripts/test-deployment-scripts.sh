@@ -46,12 +46,23 @@ MOCK_SSH_COMMAND="$temp_dir/remote-command" PATH="$temp_dir/bin:$PATH" \
 
 grep -Fq 'git status --porcelain' "$temp_dir/remote-command"
 grep -Fq 'git rev-parse --abbrev-ref HEAD' "$temp_dir/remote-command"
-grep -Fq 'git config --get remote.origin.url' "$temp_dir/remote-command"
+grep -Fq 'git config --get-all remote.origin.url' "$temp_dir/remote-command"
 grep -Fq 'git merge --ff-only origin/main' "$temp_dir/remote-command"
 grep -Fq '[ -f .env ] || cp .env.example .env' "$temp_dir/remote-command"
 ! grep -Fq 'reset --hard' "$temp_dir/remote-command"
 ! grep -Fq 'branch --show-current' "$temp_dir/remote-command"
 ! grep -Fq 'remote get-url' "$temp_dir/remote-command"
+! grep -Fq 'config --get remote.origin.url' "$temp_dir/remote-command"
+
+multi_url_repo="$temp_dir/multi-url-repo"
+git init -q "$multi_url_repo"
+git -C "$multi_url_repo" remote add origin https://example.invalid/expected.git
+git -C "$multi_url_repo" config --add remote.origin.url https://example.invalid/unexpected.git
+origin_urls=$(git -C "$multi_url_repo" config --get-all remote.origin.url || true)
+if [ "$origin_urls" = 'https://example.invalid/expected.git' ]; then
+  echo 'multiple origin URLs unexpectedly passed the exact-match guard' >&2
+  exit 1
+fi
 
 if MOCK_SSH_COMMAND="$temp_dir/unused" PATH="$temp_dir/bin:$PATH" \
   bash "$script_dir/remote-target.sh" test-target deploy ../unsafe >/dev/null 2>&1; then
