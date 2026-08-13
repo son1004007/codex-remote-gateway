@@ -21,8 +21,12 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Verify
+      - name: Verify Java
         run: mvn --batch-mode verify
+      - name: Verify shell syntax
+        run: bash -n scripts/*.sh
+      - name: Verify Compose model
+        run: docker compose -f compose.yml config >/dev/null
 
   container-build:
     needs: test
