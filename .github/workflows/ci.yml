@@ -23,3 +23,14 @@ jobs:
           cache: maven
       - name: Verify
         run: mvn --batch-mode verify
+
+  container-build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Build UBI Codex image
+        run: docker build --build-arg CODEX_VERSION=0.147.0 -f Containerfile -t codex-remote-gateway:ci .
+      - name: Verify image Codex CLI
+        run: docker run --rm --entrypoint codex codex-remote-gateway:ci --version
