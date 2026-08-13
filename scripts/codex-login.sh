@@ -10,7 +10,7 @@ else
   exit 1
 fi
 
-"$(dirname "$0")/prepare-runtime.sh"
+bash "$(dirname "$0")/prepare-runtime.sh"
 "${compose[@]}" build gateway
 
 cat <<'EOF'
