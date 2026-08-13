@@ -9,13 +9,14 @@ Usage:
   bash scripts/remote-target.sh <ssh-alias> smoke  [remote-dir]
 
 The SSH alias must be defined outside this public repository, for example in ~/.ssh/config.
+The default remote directory is codex-remote-gateway under the remote login user's home/current SSH directory.
 EOF
 }
 
 [ $# -ge 2 ] || { usage; exit 1; }
 target=$1
 action=$2
-remote_dir=${3:-~/codex-remote-gateway}
+remote_dir=${3:-codex-remote-gateway}
 repo_url=${GATEWAY_REPO_URL:-https://github.com/son1004007/codex-remote-gateway.git}
 
 case "$action" in
