@@ -52,11 +52,11 @@ if [ -e "\$remote_dir" ] || [ -L "\$remote_dir" ]; then
     echo "ERROR: remote gateway working tree is dirty; refusing deployment" >&2
     exit 1
   }
-  [ "\$(git branch --show-current)" = "main" ] || {
+  [ "\$(git rev-parse --abbrev-ref HEAD)" = "main" ] || {
     echo "ERROR: remote gateway is not on main; refusing deployment" >&2
     exit 1
   }
-  [ "\$(git remote get-url origin)" = "\$repo_url" ] || {
+  [ "\$(git config --get remote.origin.url)" = "\$repo_url" ] || {
     echo "ERROR: remote origin does not match GATEWAY_REPO_URL; refusing deployment" >&2
     exit 1
   }

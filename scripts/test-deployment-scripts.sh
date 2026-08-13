@@ -45,9 +45,13 @@ MOCK_SSH_COMMAND="$temp_dir/remote-command" PATH="$temp_dir/bin:$PATH" \
   bash "$script_dir/remote-target.sh" test-target deploy test-gateway
 
 grep -Fq 'git status --porcelain' "$temp_dir/remote-command"
+grep -Fq 'git rev-parse --abbrev-ref HEAD' "$temp_dir/remote-command"
+grep -Fq 'git config --get remote.origin.url' "$temp_dir/remote-command"
 grep -Fq 'git merge --ff-only origin/main' "$temp_dir/remote-command"
 grep -Fq '[ -f .env ] || cp .env.example .env' "$temp_dir/remote-command"
 ! grep -Fq 'reset --hard' "$temp_dir/remote-command"
+! grep -Fq 'branch --show-current' "$temp_dir/remote-command"
+! grep -Fq 'remote get-url' "$temp_dir/remote-command"
 
 if MOCK_SSH_COMMAND="$temp_dir/unused" PATH="$temp_dir/bin:$PATH" \
   bash "$script_dir/remote-target.sh" test-target deploy ../unsafe >/dev/null 2>&1; then

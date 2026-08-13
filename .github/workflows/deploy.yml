@@ -115,7 +115,7 @@ jobs:
               echo "ERROR: remote gateway working tree is dirty; refusing deployment" >&2
               exit 1
             }
-            [ "$(git remote get-url origin)" = "$repo_url" ] || {
+            [ "$(git config --get remote.origin.url)" = "$repo_url" ] || {
               echo "ERROR: remote origin does not match expected repository; refusing deployment" >&2
               exit 1
             }
@@ -194,7 +194,7 @@ jobs:
               echo "ERROR: remote gateway working tree is dirty; refusing deployment" >&2
               exit 1
             }
-            [ "$(git remote get-url origin)" = "$repo_url" ] || {
+            [ "$(git config --get remote.origin.url)" = "$repo_url" ] || {
               echo "ERROR: remote origin does not match expected repository; refusing deployment" >&2
               exit 1
             }
