@@ -6,6 +6,7 @@ import java.util.List;
 public record SessionResponse(
         String id,
         String workspaceId,
+        String providerThreadId,
         SessionStatus status,
         Instant createdAt,
         Instant updatedAt,
@@ -15,6 +16,7 @@ public record SessionResponse(
         return new SessionResponse(
                 session.id(),
                 session.workspaceId(),
+                session.providerThreadId(),
                 session.status(),
                 session.createdAt(),
                 session.updatedAt(),
