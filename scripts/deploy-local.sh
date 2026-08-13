@@ -18,6 +18,7 @@ else
 fi
 
 "${compose[@]}" build gateway
+bash "$script_dir/prepare-container-volumes.sh"
 "${compose[@]}" up -d gateway
 
 container_id=$("${compose[@]}" ps -q gateway)
