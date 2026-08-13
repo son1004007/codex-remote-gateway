@@ -1,0 +1,185 @@
+name: Deploy test servers
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codex-remote-gateway-test-deploy
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.trigger.outputs.deploy }}
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - name: Resolve tested commit
+        id: target
+        env:
+          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "sha=$DISPATCH_SHA" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=$WORKFLOW_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout tested commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.target.outputs.sha }}
+          fetch-depth: 2
+
+      - name: Check deployment trigger
+        id: trigger
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git rev-parse HEAD^ >/dev/null 2>&1 && git diff --quiet HEAD^ HEAD -- .deploy/trigger; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy-primary:
+    name: Deploy primary test server
+    needs: gate
+    if: needs.gate.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    environment: server-primary
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          test -s "$HOME/.ssh/deploy_key"
+          test -s "$HOME/.ssh/known_hosts"
+
+      - name: Deploy exact tested commit and smoke test
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_SHA: ${{ needs.gate.outputs.sha }}
+          REMOTE_DIR: ${{ vars.REMOTE_DIR }}
+        run: |
+          set -euo pipefail
+          remote_dir=${REMOTE_DIR:-codex-remote-gateway}
+          ssh -i "$HOME/.ssh/deploy_key" \
+            -p "$SSH_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            bash -s -- "$DEPLOY_SHA" "$remote_dir" <<'REMOTE'
+          set -euo pipefail
+          deploy_sha=$1
+          remote_dir=$2
+          repo_url=https://github.com/son1004007/codex-remote-gateway.git
+
+          case "$remote_dir" in
+            /*) ;;
+            *) remote_dir="$HOME/$remote_dir" ;;
+          esac
+
+          if [ -d "$remote_dir/.git" ]; then
+            cd "$remote_dir"
+            git fetch origin main
+          else
+            git clone "$repo_url" "$remote_dir"
+            cd "$remote_dir"
+            git fetch origin main
+          fi
+
+          git reset --hard "$deploy_sha"
+          test "$(git rev-parse HEAD)" = "$deploy_sha"
+          bash scripts/preflight.sh
+          bash scripts/deploy-local.sh
+          bash scripts/smoke-test.sh
+          REMOTE
+
+  deploy-secondary:
+    name: Deploy secondary test server
+    needs: [gate, deploy-primary]
+    if: needs.gate.outputs.deploy == 'true' && needs.deploy-primary.result == 'success'
+    runs-on: ubuntu-latest
+    environment: server-secondary
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          test -s "$HOME/.ssh/deploy_key"
+          test -s "$HOME/.ssh/known_hosts"
+
+      - name: Deploy exact tested commit and smoke test
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_SHA: ${{ needs.gate.outputs.sha }}
+          REMOTE_DIR: ${{ vars.REMOTE_DIR }}
+        run: |
+          set -euo pipefail
+          remote_dir=${REMOTE_DIR:-codex-remote-gateway}
+          ssh -i "$HOME/.ssh/deploy_key" \
+            -p "$SSH_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            bash -s -- "$DEPLOY_SHA" "$remote_dir" <<'REMOTE'
+          set -euo pipefail
+          deploy_sha=$1
+          remote_dir=$2
+          repo_url=https://github.com/son1004007/codex-remote-gateway.git
+
+          case "$remote_dir" in
+            /*) ;;
+            *) remote_dir="$HOME/$remote_dir" ;;
+          esac
+
+          if [ -d "$remote_dir/.git" ]; then
+            cd "$remote_dir"
+            git fetch origin main
+          else
+            git clone "$repo_url" "$remote_dir"
+            cd "$remote_dir"
+            git fetch origin main
+          fi
+
+          git reset --hard "$deploy_sha"
+          test "$(git rev-parse HEAD)" = "$deploy_sha"
+          bash scripts/preflight.sh
+          bash scripts/deploy-local.sh
+          bash scripts/smoke-test.sh
+          REMOTE
