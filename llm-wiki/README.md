@@ -12,7 +12,8 @@ Its purpose is to reduce repeated mistakes caused by stale conversation history,
 4. `OPEN_QUESTIONS.md` — unresolved items that must not be guessed
 5. `KNOWN_ISSUES.md` — known defects, risks, or technical debt
 6. `ARCHITECTURE_MAP.md` — compact map of components and responsibilities
-7. `WORK_LOG.md` — major historical milestones only
+7. `TESTING_RULES.md` — independent ISTQB-style test design and defect-reporting rules; mandatory when testing/QA is requested
+8. `WORK_LOG.md` — major historical milestones only
 
 ## Status vocabulary
 
@@ -26,6 +27,12 @@ Use these words consistently:
 - `UNKNOWN`: insufficient evidence; do not guess.
 - `DEPRECATED`: intentionally superseded; do not revive without a new decision.
 
+## Testing rule
+
+When testing, QA, verification, regression testing, edge-case review, or bug finding is requested, `TESTING_RULES.md` becomes part of the mandatory working context.
+
+Prefer an independent test agent when the runtime supports subagents. The testing role must derive expected behavior independently and report defects before implementation changes are made. If subagents are unavailable, perform an explicitly separated testing phase instead of silently pretending agent independence exists.
+
 ## Maintenance rules
 
 - Keep files concise and factual.
@@ -35,3 +42,4 @@ Use these words consistently:
 - Do not use `WORK_LOG.md` as the current source of truth.
 - When a decision changes, mark the previous decision as superseded instead of silently rewriting history.
 - When implementation and documentation conflict, inspect executable code/configuration and tests first.
+- Update `TESTING_RULES.md` only when the project's durable QA policy changes; test results belong in test reports/issues, not in the policy file.
