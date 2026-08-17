@@ -2,6 +2,7 @@ package io.github.son1004007.codexremote.workflow;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 public record WorkflowSnapshot(
         String id,
@@ -14,6 +15,8 @@ public record WorkflowSnapshot(
         boolean autoDeploy,
         String lastOutput,
         String lastError,
+        Map<WorkflowStage, String> stageWorkers,
+        Map<WorkflowStage, String> stageOutputs,
         Instant createdAt,
         Instant updatedAt,
         List<WorkflowEvent> events

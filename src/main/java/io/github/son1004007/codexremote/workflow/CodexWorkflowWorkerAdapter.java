@@ -12,14 +12,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @ConditionalOnProperty(name = "gateway.agent.mode", havingValue = "codex")
-public class CodexWorkflowWorkerAdapter implements WorkflowWorkerPort {
-
-    private static final String RESULT_PREFIX = "WORKFLOW_RESULT:";
+class CodexWorkflowWorkerAdapter implements WorkflowStageWorker {
 
     private final AgentSessionPort sessions;
     private final Map<String, String> sessionIdsByWorkflow = new ConcurrentHashMap<>();
 
-    public CodexWorkflowWorkerAdapter(AgentSessionPort sessions) {
+    CodexWorkflowWorkerAdapter(AgentSessionPort sessions) {
         this.sessions = sessions;
     }
 
@@ -29,14 +27,19 @@ public class CodexWorkflowWorkerAdapter implements WorkflowWorkerPort {
     }
 
     @Override
-    public Result execute(String workflowId, String workspaceId, WorkflowStage stage, String instruction) {
+    public WorkflowWorkerPort.Result execute(
+            String workflowId,
+            String workspaceId,
+            WorkflowStage stage,
+            String instruction
+    ) {
         String sessionId = sessionIdsByWorkflow.computeIfAbsent(
                 workflowId,
                 ignored -> sessions.create(workspaceId).id()
         );
         AgentSession updated = sessions.submit(sessionId, instruction);
         String message = lastAssistantMessage(updated);
-        return new Result(sessionId, parseOutcome(message), message);
+        return new WorkflowWorkerPort.Result(sessionId, WorkflowResultParser.parse(message), message);
     }
 
     @Override
@@ -57,22 +60,5 @@ public class CodexWorkflowWorkerAdapter implements WorkflowWorkerPort {
                 .map(SessionEvent::message)
                 .reduce((first, second) -> second)
                 .orElse("");
-    }
-
-    private static Outcome parseOutcome(String message) {
-        String marker = message.lines()
-                .map(String::strip)
-                .filter(line -> line.startsWith(RESULT_PREFIX))
-                .reduce((first, second) -> second)
-                .orElse("");
-
-        String value = marker.substring(Math.min(marker.length(), RESULT_PREFIX.length())).strip();
-        if (value.startsWith("SUCCESS")) {
-            return Outcome.SUCCESS;
-        }
-        if (value.startsWith("FAILED")) {
-            return Outcome.FAILED;
-        }
-        return Outcome.BLOCKED;
     }
 }

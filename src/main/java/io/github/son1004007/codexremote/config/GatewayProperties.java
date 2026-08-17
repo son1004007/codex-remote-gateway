@@ -9,6 +9,7 @@ public class GatewayProperties {
 
     private final Agent agent = new Agent();
     private final Codex codex = new Codex();
+    private final Antigravity antigravity = new Antigravity();
 
     public Agent getAgent() {
         return agent;
@@ -16,6 +17,10 @@ public class GatewayProperties {
 
     public Codex getCodex() {
         return codex;
+    }
+
+    public Antigravity getAntigravity() {
+        return antigravity;
     }
 
     public static class Agent {
@@ -77,6 +82,45 @@ public class GatewayProperties {
 
         public void setSandbox(String sandbox) {
             this.sandbox = sandbox;
+        }
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public Duration getTurnTimeout() {
+            return turnTimeout;
+        }
+
+        public void setTurnTimeout(Duration turnTimeout) {
+            this.turnTimeout = turnTimeout;
+        }
+    }
+
+    public static class Antigravity {
+        private boolean enabled;
+        private String command = "agy";
+        private String model = "";
+        private Duration turnTimeout = Duration.ofMinutes(5);
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getCommand() {
+            return command;
+        }
+
+        public void setCommand(String command) {
+            this.command = command;
         }
 
         public String getModel() {
