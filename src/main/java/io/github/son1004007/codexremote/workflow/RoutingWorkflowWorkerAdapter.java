@@ -1,6 +1,6 @@
 package io.github.son1004007.codexremote.workflow;
 
-import org.springframework.beans.factory.ObjectProvider;
+import io.github.son1004007.codexremote.config.GatewayProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -10,18 +10,21 @@ public class RoutingWorkflowWorkerAdapter implements WorkflowWorkerPort {
 
     private final CodexWorkflowWorkerAdapter codex;
     private final AntigravityWorkflowWorkerAdapter antigravity;
+    private final boolean antigravityEnabled;
 
     public RoutingWorkflowWorkerAdapter(
             CodexWorkflowWorkerAdapter codex,
-            ObjectProvider<AntigravityWorkflowWorkerAdapter> antigravityProvider
+            AntigravityWorkflowWorkerAdapter antigravity,
+            GatewayProperties properties
     ) {
         this.codex = codex;
-        this.antigravity = antigravityProvider.getIfAvailable();
+        this.antigravity = antigravity;
+        this.antigravityEnabled = properties.getAntigravity().isEnabled();
     }
 
     @Override
     public String provider() {
-        return antigravity == null ? "codex" : "codex+antigravity";
+        return antigravityEnabled ? "codex+antigravity" : "codex";
     }
 
     @Override
@@ -37,13 +40,13 @@ public class RoutingWorkflowWorkerAdapter implements WorkflowWorkerPort {
     @Override
     public void cancel(String workflowId) {
         codex.cancel(workflowId);
-        if (antigravity != null) {
+        if (antigravityEnabled) {
             antigravity.cancel(workflowId);
         }
     }
 
     private WorkflowStageWorker workerFor(WorkflowStage stage) {
-        if (antigravity != null && switch (stage) {
+        if (antigravityEnabled && switch (stage) {
             case PLAN, TEST_DESIGN, REVIEW -> true;
             default -> false;
         }) {
