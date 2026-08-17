@@ -2,6 +2,7 @@ package io.github.son1004007.codexremote.workflow;
 
 import io.github.son1004007.codexremote.config.GatewayProperties;
 import io.github.son1004007.codexremote.session.WorkspaceNotFoundException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -10,6 +11,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
 @Component
+@ConditionalOnProperty(name = "gateway.agent.mode", havingValue = "codex")
 class WorkflowWorkspaceResolver {
 
     private final Path workspaceRoot;
