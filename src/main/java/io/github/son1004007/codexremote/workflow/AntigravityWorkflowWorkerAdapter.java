@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Component
-@ConditionalOnProperty(name = "gateway.antigravity.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "gateway.agent.mode", havingValue = "codex")
 class AntigravityWorkflowWorkerAdapter implements WorkflowStageWorker {
 
     private static final int MAX_GIT_CONTEXT = 20_000;
