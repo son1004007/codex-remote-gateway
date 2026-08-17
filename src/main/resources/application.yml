@@ -16,6 +16,11 @@ gateway:
     sandbox: ${GATEWAY_CODEX_SANDBOX:workspace-write}
     model: ${GATEWAY_CODEX_MODEL:}
     turn-timeout: ${GATEWAY_CODEX_TURN_TIMEOUT:10m}
+  antigravity:
+    enabled: ${GATEWAY_ANTIGRAVITY_ENABLED:false}
+    command: ${GATEWAY_ANTIGRAVITY_COMMAND:agy}
+    model: ${GATEWAY_ANTIGRAVITY_MODEL:}
+    turn-timeout: ${GATEWAY_ANTIGRAVITY_TURN_TIMEOUT:5m}
 
 management:
   endpoints:
