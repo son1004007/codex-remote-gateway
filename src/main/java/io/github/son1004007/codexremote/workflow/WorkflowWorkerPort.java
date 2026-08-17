@@ -4,6 +4,10 @@ public interface WorkflowWorkerPort {
 
     String provider();
 
+    default String providerFor(WorkflowStage stage) {
+        return provider();
+    }
+
     Result execute(String workflowId, String workspaceId, WorkflowStage stage, String instruction);
 
     void cancel(String workflowId);
