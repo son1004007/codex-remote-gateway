@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "gateway.agent.mode", havingValue = "codex")
 public class RoutingWorkflowWorkerAdapter implements WorkflowWorkerPort {
 
-    private final CodexWorkflowWorkerAdapter codex;
-    private final AntigravityWorkflowWorkerAdapter antigravity;
+    private final WorkflowStageWorker codex;
+    private final WorkflowStageWorker antigravity;
     private final boolean antigravityEnabled;
 
     public RoutingWorkflowWorkerAdapter(
@@ -17,9 +17,17 @@ public class RoutingWorkflowWorkerAdapter implements WorkflowWorkerPort {
             AntigravityWorkflowWorkerAdapter antigravity,
             GatewayProperties properties
     ) {
+        this(codex, antigravity, properties.getAntigravity().isEnabled());
+    }
+
+    RoutingWorkflowWorkerAdapter(
+            WorkflowStageWorker codex,
+            WorkflowStageWorker antigravity,
+            boolean antigravityEnabled
+    ) {
         this.codex = codex;
         this.antigravity = antigravity;
-        this.antigravityEnabled = properties.getAntigravity().isEnabled();
+        this.antigravityEnabled = antigravityEnabled;
     }
 
     @Override
