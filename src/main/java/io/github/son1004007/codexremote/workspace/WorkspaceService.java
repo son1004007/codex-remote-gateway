@@ -2,6 +2,7 @@ package io.github.son1004007.codexremote.workspace;
 
 import io.github.son1004007.codexremote.config.GatewayProperties;
 import io.github.son1004007.codexremote.session.WorkspaceNotFoundException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@ConditionalOnProperty(name = "gateway.agent.mode", havingValue = "codex")
 public class WorkspaceService {
 
     private static final int MAX_GIT_OUTPUT_BYTES = 512 * 1024;
