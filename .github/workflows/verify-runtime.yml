@@ -33,10 +33,11 @@ jobs:
           test -n "$sha"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-  verify-primary:
-    name: Verify primary runtime (RTX2080)
+  verify-office:
+    name: Verify office runtime (RTX2080)
     needs: resolve
     runs-on: ubuntu-latest
+    # Legacy Environment name is retained only to reuse the existing office SSH auth material.
     environment: server-primary
     outputs:
       deployed_sha: ${{ steps.verify.outputs.deployed_sha }}
@@ -44,11 +45,11 @@ jobs:
       - name: Checkout verifier and target config
         uses: actions/checkout@v5
 
-      - name: Load primary target
+      - name: Load office target
         run: |
           set -euo pipefail
           source scripts/load-server-target.sh
-          load_server_target server-primary
+          load_server_target office
           {
             echo "SSH_HOST=$SSH_HOST"
             echo "SSH_PORT=$SSH_PORT"
@@ -75,13 +76,14 @@ jobs:
         env:
           REMOTE_DIR: ${{ vars.REMOTE_DIR }}
           EXPECTED_SHA: ${{ needs.resolve.outputs.expected_sha }}
-        run: bash scripts/verify-remote-runtime.sh primary
+        run: bash scripts/verify-remote-runtime.sh office
 
-  verify-secondary:
-    name: Verify secondary runtime (IDC data1)
-    needs: [resolve, verify-primary]
+  verify-idc:
+    name: Verify IDC runtime (data1)
+    needs: [resolve, verify-office]
     if: always() && needs.resolve.result == 'success'
     runs-on: ubuntu-latest
+    # Legacy Environment name is retained only to reuse the existing IDC SSH auth material.
     environment: server-secondary
     outputs:
       deployed_sha: ${{ steps.verify.outputs.deployed_sha }}
@@ -89,11 +91,11 @@ jobs:
       - name: Checkout verifier and target config
         uses: actions/checkout@v5
 
-      - name: Load secondary target
+      - name: Load IDC target
         run: |
           set -euo pipefail
           source scripts/load-server-target.sh
-          load_server_target server-secondary
+          load_server_target idc
           {
             echo "SSH_HOST=$SSH_HOST"
             echo "SSH_PORT=$SSH_PORT"
@@ -120,24 +122,24 @@ jobs:
         env:
           REMOTE_DIR: ${{ vars.REMOTE_DIR }}
           EXPECTED_SHA: ${{ needs.resolve.outputs.expected_sha }}
-        run: bash scripts/verify-remote-runtime.sh secondary
+        run: bash scripts/verify-remote-runtime.sh idc
 
   publish:
     name: Publish verification pointer
-    needs: [resolve, verify-primary, verify-secondary]
+    needs: [resolve, verify-office, verify-idc]
     if: always() && needs.resolve.result != 'skipped'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
       EXPECTED_SHA: ${{ needs.resolve.outputs.expected_sha }}
-      PRIMARY_RESULT: ${{ needs.verify-primary.result }}
-      SECONDARY_RESULT: ${{ needs.verify-secondary.result }}
+      OFFICE_RESULT: ${{ needs.verify-office.result }}
+      IDC_RESULT: ${{ needs.verify-idc.result }}
     steps:
       - name: Update fixed verification issue
         run: |
           set -euo pipefail
           overall=FAIL
-          if [ "$PRIMARY_RESULT" = success ] && [ "$SECONDARY_RESULT" = success ]; then
+          if [ "$OFFICE_RESULT" = success ] && [ "$IDC_RESULT" = success ]; then
             overall=PASS
           fi
 
@@ -146,8 +148,8 @@ jobs:
 
           - Overall: **$overall**
           - Expected deployment SHA: \`$EXPECTED_SHA\`
-          - Primary target (RTX2080): \`$PRIMARY_RESULT\`
-          - Secondary target (IDC data1): \`$SECONDARY_RESULT\`
+          - Office / RTX2080: \`$OFFICE_RESULT\`
+          - IDC / data1: \`$IDC_RESULT\`
           - Checks: deployed SHA, Actuator health, browser UI/workspace API, prior real-Codex two-turn smoke/thread evidence
           - Workflow run: \`${GITHUB_RUN_ID}\`
 
