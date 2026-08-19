@@ -19,9 +19,11 @@ assert_fails_with() {
   }
 }
 
-# Required connection fields are classified without attempting SSH or printing values.
-assert_fails_with 'missing-ssh-host' \
+# Required connection fields are aggregated without attempting SSH or printing values.
+assert_fails_with 'missing-config:ssh-host,ssh-port,ssh-user,expected-sha,ssh-key,known-hosts' \
   env -u SSH_HOST -u SSH_PORT -u SSH_USER -u EXPECTED_SHA \
+      HOME="$temp_dir/empty-home" \
+      SSH_KEY_FILE="$temp_dir/missing-key" \
   bash "$script_dir/verify-remote-runtime.sh" test-target
 
 # Invalid ports are rejected locally after required secret-file preconditions pass.
