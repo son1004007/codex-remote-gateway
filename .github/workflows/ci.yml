@@ -29,6 +29,7 @@ jobs:
         run: |
           bash scripts/test-deployment-scripts.sh
           bash scripts/test-runtime-verifier.sh
+          bash scripts/test-server-targets.sh
       - name: Verify Compose model
         run: docker compose -f compose.yml config >/dev/null
 
