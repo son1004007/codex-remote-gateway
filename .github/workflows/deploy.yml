@@ -58,11 +58,12 @@ jobs:
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           fi
 
-  deploy-primary:
-    name: Deploy primary test server (RTX2080)
+  deploy-office:
+    name: Deploy office server (RTX2080)
     needs: gate
     if: needs.gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
+    # Legacy Environment name is retained only to reuse the existing office SSH auth material.
     environment: server-primary
     steps:
       - name: Checkout exact tested commit
@@ -70,11 +71,11 @@ jobs:
         with:
           ref: ${{ needs.gate.outputs.sha }}
 
-      - name: Load primary target
+      - name: Load office target
         run: |
           set -euo pipefail
           source scripts/load-server-target.sh
-          load_server_target server-primary
+          load_server_target office
           {
             echo "SSH_HOST=$SSH_HOST"
             echo "SSH_PORT=$SSH_PORT"
@@ -154,11 +155,12 @@ jobs:
           bash scripts/smoke-test.sh
           REMOTE
 
-  deploy-secondary:
-    name: Deploy secondary test server (IDC data1)
-    needs: [gate, deploy-primary]
-    if: needs.gate.outputs.deploy == 'true' && needs.deploy-primary.result == 'success'
+  deploy-idc:
+    name: Deploy IDC server (data1)
+    needs: [gate, deploy-office]
+    if: needs.gate.outputs.deploy == 'true' && needs.deploy-office.result == 'success'
     runs-on: ubuntu-latest
+    # Legacy Environment name is retained only to reuse the existing IDC SSH auth material.
     environment: server-secondary
     steps:
       - name: Checkout exact tested commit
@@ -166,11 +168,11 @@ jobs:
         with:
           ref: ${{ needs.gate.outputs.sha }}
 
-      - name: Load secondary target
+      - name: Load IDC target
         run: |
           set -euo pipefail
           source scripts/load-server-target.sh
-          load_server_target server-secondary
+          load_server_target idc
           {
             echo "SSH_HOST=$SSH_HOST"
             echo "SSH_PORT=$SSH_PORT"
