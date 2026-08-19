@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -39,7 +40,7 @@ public class WorkspaceService {
                     .filter(path -> Files.isDirectory(path) && !Files.isSymbolicLink(path))
                     .map(path -> new WorkspaceSummary(
                             path.getFileName().toString(),
-                            Files.isDirectory(path.resolve(".git"))))
+                            Files.exists(path.resolve(".git"))))
                     .sorted(Comparator.comparing(WorkspaceSummary::id))
                     .toList();
         } catch (IOException ex) {
@@ -89,7 +90,7 @@ public class WorkspaceService {
     }
 
     private void ensureGitRepository(Path workspace, String workspaceId) {
-        if (!Files.isDirectory(workspace.resolve(".git"))) {
+        if (!Files.exists(workspace.resolve(".git"))) {
             throw new IllegalStateException("Workspace is not a Git repository: " + workspaceId);
         }
     }
@@ -115,7 +116,10 @@ public class WorkspaceService {
                 throw new IllegalStateException("Git command timed out");
             }
 
-            byte[] bytes = Files.readAllBytes(outputFile);
+            byte[] bytes;
+            try (InputStream input = Files.newInputStream(outputFile)) {
+                bytes = input.readNBytes(MAX_GIT_OUTPUT_BYTES + 1);
+            }
             boolean truncated = bytes.length > MAX_GIT_OUTPUT_BYTES;
             int length = Math.min(bytes.length, MAX_GIT_OUTPUT_BYTES);
             String output = new String(bytes, 0, length, StandardCharsets.UTF_8);
