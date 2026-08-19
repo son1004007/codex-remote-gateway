@@ -22,20 +22,34 @@ Last reviewed: 2026-08-19
 
 ## Browser Codex control
 
-PR: `#3 Add first browser Codex control vertical slice`
+PR: `#3 Add first browser Codex control vertical slice` — merged.
 
-- `IMPLEMENTED ON PR #3`: responsive PC/mobile browser UI is served from the gateway root.
-- `IMPLEMENTED ON PR #3`: direct-child workspace discovery is available in Codex mode without accepting arbitrary filesystem paths.
-- `IMPLEMENTED ON PR #3`: session create/list/select/reconnect and prompt submission are available from the browser.
-- `IMPLEMENTED ON PR #3`: browser prompt requests enqueue a Codex turn on a Java 21 virtual thread and return `202`, so the HTTP request/browser connection does not own the entire turn lifetime.
-- `IMPLEMENTED ON PR #3`: execution state can be polled as `IDLE`, `RUNNING`, `CANCEL_REQUESTED`, `SUCCEEDED`, `FAILED`, or `CANCELLED`.
-- `IMPLEMENTED ON PR #3`: cancellation is best effort and closes the pre-start cancellation race, but the underlying Codex App Server client still cannot guarantee interruption after every provider operation has begun.
-- `IMPLEMENTED ON PR #3`: session events are rendered as a browser timeline; model/user text is inserted with DOM `textContent`, not trusted HTML.
-- `IMPLEMENTED ON PR #3`: read-only Git status, working-tree diff, and staged diff APIs/UI use fixed ProcessBuilder arguments, no browser shell, a timeout, and bounded returned output.
-- `IMPLEMENTED ON PR #3`: Git worktree `.git` files are recognized as repositories.
-- `IMPLEMENTED ON PR #3`: deployment smoke test now checks the browser root and asynchronous two-turn Codex thread resume behavior.
+- `IMPLEMENTED`: responsive PC/mobile browser UI is served from the gateway root.
+- `IMPLEMENTED`: direct-child workspace discovery is available in Codex mode without accepting arbitrary filesystem paths.
+- `IMPLEMENTED`: session create/list/select/reconnect and prompt submission are available from the browser.
+- `IMPLEMENTED`: browser prompt requests enqueue a Codex turn on a Java 21 virtual thread and return `202`, so the HTTP request/browser connection does not own the entire turn lifetime.
+- `IMPLEMENTED`: execution state can be polled as `IDLE`, `RUNNING`, `CANCEL_REQUESTED`, `SUCCEEDED`, `FAILED`, or `CANCELLED`.
+- `IMPLEMENTED`: cancellation is best effort and closes the pre-start cancellation race, but the underlying Codex App Server client still cannot guarantee interruption after every provider operation has begun.
+- `IMPLEMENTED`: session events are rendered as a browser timeline; model/user text is inserted with DOM `textContent`, not trusted HTML.
+- `IMPLEMENTED`: read-only Git status, working-tree diff, and staged diff APIs/UI use fixed ProcessBuilder arguments, no browser shell, a timeout, and bounded returned output.
+- `IMPLEMENTED`: Git worktree `.git` files are recognized as repositories.
+- `IMPLEMENTED`: deployment smoke test checks the browser root and asynchronous two-turn Codex thread resume behavior.
+- `CONFIRMED`: PR #3 final CI run `32251726719` passed Java tests, shell/deployment checks, Compose validation, UBI image build, and image-local Codex CLI verification.
+- `CONFIRMED`: merge SHA is `46daa5b1b8891eb7916e0c3075fb7255e0d79589`.
+- `CONFIRMED`: rollout trigger commit is `91fc451861bfc87d819c33a707e7894f7762333d` and `.deploy/trigger` was changed once for this release.
 - `SECURITY BOUNDARY`: the browser control surface is not authenticated yet and must remain loopback/private-network bound until authenticated HTTPS ingress is implemented.
-- `PENDING RUNTIME`: PR #3 must pass CI, then be deployed and smoke-tested independently on the primary IDC target and the secondary RTX2080 target before server-local browser control is called runtime-validated.
+- `BLOCKED RUNTIME`: both configured server GitHub Environments currently lack `SSH_HOST`, `SSH_PORT`, and `SSH_USER`; the runtime verifier cannot reach either host until those private environment secrets are populated.
+
+## Runtime verification observability
+
+- `IMPLEMENTED`: fixed Issue #4 is the durable non-secret runtime verification pointer.
+- `IMPLEMENTED`: reopening Issue #4 by the repository owner runs a read-only primary/secondary verifier without changing `.deploy/trigger` or deployment state.
+- `IMPLEMENTED`: verifier checks expected deployed SHA, health, browser UI/workspace API, and prior real-Codex two-turn/thread evidence.
+- `IMPLEMENTED`: SSH/runtime failures are reduced to privacy-safe categories rather than printing endpoints or credentials.
+- `IMPLEMENTED`: missing SSH endpoint configuration is aggregated so host/port/user omissions can be corrected in one setup pass.
+- `CONFIRMED`: runtime verification run `32253686227` reported `missing-config:ssh-host,ssh-port,ssh-user` for both primary and secondary targets.
+- `CONFIRMED`: `SSH_PRIVATE_KEY` and `SSH_KNOWN_HOSTS` files passed the verifier's non-empty preconditions on both GitHub Environments.
+- `NEXT`: populate `SSH_HOST`, `SSH_PORT`, and `SSH_USER` privately in `server-primary` and `server-secondary`, then close/reopen Issue #4 and continue from the resulting category/evidence.
 
 ## Cross-model workflow
 
@@ -83,8 +97,9 @@ E2E              -> Codex for now
 - `CONFIRMED`: routing/fallback/handoff tests cover the existing Codex + Antigravity workflow policy.
 - `CONFIRMED`: shell/deployment-script tests and Compose validation exist.
 - `CONFIRMED`: UBI Codex image build and pinned Codex CLI validation exist in CI.
-- `PENDING`: PR #3 final CI evidence after the current browser-control fixes.
-- `PENDING`: browser-control deployment and real Codex two-turn smoke evidence on both selected Linux servers.
+- `CONFIRMED`: browser-control PR #3 final CI is PASS.
+- `CONFIRMED`: runtime verifier diagnostic PRs #5, #6, and #7 are merged with CI coverage.
+- `BLOCKED`: browser-control deployment and real Codex two-turn smoke cannot yet be validated on the two selected Linux targets because GitHub Environment host/port/user values are missing.
 
 ## Important limitations
 
@@ -105,6 +120,7 @@ Infrastructure identifiers are intentionally not copied into this public reposit
 
 - `PLANNED`: Primary runtime validation is the selected Red Hat-family IDC target documented in private device inventory.
 - `PLANNED`: Secondary runtime validation is the selected Ubuntu RTX2080 target documented in private device inventory.
-- `UNKNOWN`: PR #3 runtime status on each target until deployment workflow output proves the acceptance criteria.
+- `BLOCKED`: GitHub Environment `server-primary` is missing private `SSH_HOST`, `SSH_PORT`, and `SSH_USER` values.
+- `BLOCKED`: GitHub Environment `server-secondary` is missing private `SSH_HOST`, `SSH_PORT`, and `SSH_USER` values.
 
 Do not describe either target as browser-GUI validated until actual host deployment and smoke output proves it.
