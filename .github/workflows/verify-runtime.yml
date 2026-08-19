@@ -41,6 +41,9 @@ jobs:
     outputs:
       deployed_sha: ${{ steps.verify.outputs.deployed_sha }}
     steps:
+      - name: Checkout verifier
+        uses: actions/checkout@v5
+
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -62,65 +65,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           REMOTE_DIR: ${{ vars.REMOTE_DIR }}
           EXPECTED_SHA: ${{ needs.resolve.outputs.expected_sha }}
-        run: |
-          set -euo pipefail
-          remote_dir=${REMOTE_DIR:-codex-remote-gateway}
-          result=$(ssh -i "$HOME/.ssh/verify_key" \
-            -p "$SSH_PORT" \
-            -o BatchMode=yes \
-            -o ConnectTimeout=20 \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "$SSH_USER@$SSH_HOST" \
-            bash -s -- "$EXPECTED_SHA" "$remote_dir" 2>/dev/null <<'REMOTE'
-          set -u
-          expected_sha=$1
-          remote_dir=$2
-          fail() {
-            printf 'VERIFY_ERROR=%s\n' "$1"
-            exit 1
-          }
-
-          case "$remote_dir" in
-            /*) ;;
-            *) remote_dir="$HOME/$remote_dir" ;;
-          esac
-
-          [ -d "$remote_dir/.git" ] || fail repository
-          cd "$remote_dir" || fail repository
-          deployed_sha=$(git rev-parse HEAD 2>/dev/null) || fail repository
-          [ "$deployed_sha" = "$expected_sha" ] || fail sha-mismatch
-
-          [ -f scripts/load-deployment-env.sh ] || fail deployment-env-loader
-          # shellcheck disable=SC1091
-          source scripts/load-deployment-env.sh
-          load_deployment_env "$remote_dir/.env" || fail deployment-env
-          base_url="http://127.0.0.1:${GATEWAY_PORT:-18080}"
-
-          health=$(curl -fsS --max-time 10 "$base_url/actuator/health" 2>/dev/null) || fail health
-          printf '%s' "$health" | grep -q '"status":"UP"' || fail health
-
-          page=$(curl -fsS --max-time 10 "$base_url/" 2>/dev/null) || fail ui
-          printf '%s' "$page" | grep -Fq 'Codex Remote Gateway' || fail ui
-
-          sessions=$(curl -fsS --max-time 10 "$base_url/api/v1/sessions" 2>/dev/null) || fail sessions
-          printf '%s' "$sessions" | grep -q '"workspaceId":"smoke"' || fail smoke-session
-          printf '%s' "$sessions" | grep -Fq 'gateway-ok' || fail smoke-first-turn
-          printf '%s' "$sessions" | grep -Fq 'gateway-resume-ok' || fail smoke-second-turn
-          printf '%s' "$sessions" | grep -q '"providerThreadId":"' || fail smoke-thread
-
-          printf 'VERIFIED_SHA=%s\n' "$deployed_sha"
-          REMOTE
-          ) || {
-            marker=$(printf '%s\n' "$result" | sed -n 's/^VERIFY_ERROR=//p' | tail -1)
-            echo "Primary runtime verification failed${marker:+ at $marker}." >&2
-            exit 1
-          }
-
-          deployed_sha=$(printf '%s\n' "$result" | sed -n 's/^VERIFIED_SHA=//p' | tail -1)
-          test "$deployed_sha" = "$EXPECTED_SHA"
-          echo "deployed_sha=$deployed_sha" >> "$GITHUB_OUTPUT"
-          echo "Primary runtime verification: PASS"
+        run: bash scripts/verify-remote-runtime.sh primary
 
   verify-secondary:
     name: Verify secondary runtime
@@ -131,6 +76,9 @@ jobs:
     outputs:
       deployed_sha: ${{ steps.verify.outputs.deployed_sha }}
     steps:
+      - name: Checkout verifier
+        uses: actions/checkout@v5
+
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -152,65 +100,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           REMOTE_DIR: ${{ vars.REMOTE_DIR }}
           EXPECTED_SHA: ${{ needs.resolve.outputs.expected_sha }}
-        run: |
-          set -euo pipefail
-          remote_dir=${REMOTE_DIR:-codex-remote-gateway}
-          result=$(ssh -i "$HOME/.ssh/verify_key" \
-            -p "$SSH_PORT" \
-            -o BatchMode=yes \
-            -o ConnectTimeout=20 \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "$SSH_USER@$SSH_HOST" \
-            bash -s -- "$EXPECTED_SHA" "$remote_dir" 2>/dev/null <<'REMOTE'
-          set -u
-          expected_sha=$1
-          remote_dir=$2
-          fail() {
-            printf 'VERIFY_ERROR=%s\n' "$1"
-            exit 1
-          }
-
-          case "$remote_dir" in
-            /*) ;;
-            *) remote_dir="$HOME/$remote_dir" ;;
-          esac
-
-          [ -d "$remote_dir/.git" ] || fail repository
-          cd "$remote_dir" || fail repository
-          deployed_sha=$(git rev-parse HEAD 2>/dev/null) || fail repository
-          [ "$deployed_sha" = "$expected_sha" ] || fail sha-mismatch
-
-          [ -f scripts/load-deployment-env.sh ] || fail deployment-env-loader
-          # shellcheck disable=SC1091
-          source scripts/load-deployment-env.sh
-          load_deployment_env "$remote_dir/.env" || fail deployment-env
-          base_url="http://127.0.0.1:${GATEWAY_PORT:-18080}"
-
-          health=$(curl -fsS --max-time 10 "$base_url/actuator/health" 2>/dev/null) || fail health
-          printf '%s' "$health" | grep -q '"status":"UP"' || fail health
-
-          page=$(curl -fsS --max-time 10 "$base_url/" 2>/dev/null) || fail ui
-          printf '%s' "$page" | grep -Fq 'Codex Remote Gateway' || fail ui
-
-          sessions=$(curl -fsS --max-time 10 "$base_url/api/v1/sessions" 2>/dev/null) || fail sessions
-          printf '%s' "$sessions" | grep -q '"workspaceId":"smoke"' || fail smoke-session
-          printf '%s' "$sessions" | grep -Fq 'gateway-ok' || fail smoke-first-turn
-          printf '%s' "$sessions" | grep -Fq 'gateway-resume-ok' || fail smoke-second-turn
-          printf '%s' "$sessions" | grep -q '"providerThreadId":"' || fail smoke-thread
-
-          printf 'VERIFIED_SHA=%s\n' "$deployed_sha"
-          REMOTE
-          ) || {
-            marker=$(printf '%s\n' "$result" | sed -n 's/^VERIFY_ERROR=//p' | tail -1)
-            echo "Secondary runtime verification failed${marker:+ at $marker}." >&2
-            exit 1
-          }
-
-          deployed_sha=$(printf '%s\n' "$result" | sed -n 's/^VERIFIED_SHA=//p' | tail -1)
-          test "$deployed_sha" = "$EXPECTED_SHA"
-          echo "deployed_sha=$deployed_sha" >> "$GITHUB_OUTPUT"
-          echo "Secondary runtime verification: PASS"
+        run: bash scripts/verify-remote-runtime.sh secondary
 
   publish:
     name: Publish verification pointer
@@ -238,10 +128,10 @@ jobs:
           - Expected deployment SHA: \`$EXPECTED_SHA\`
           - Primary configured target: \`$PRIMARY_RESULT\`
           - Secondary configured target: \`$SECONDARY_RESULT\`
-          - Checks: deployed SHA, Actuator health, browser UI, prior real-Codex two-turn smoke/thread evidence
+          - Checks: deployed SHA, Actuator health, browser UI/workspace API, prior real-Codex two-turn smoke/thread evidence
           - Workflow run: \`${GITHUB_RUN_ID}\`
 
-          This public pointer intentionally omits private host identifiers, network endpoints, usernames, and credentials. Reopen this issue to request another read-only runtime verification.
+          Detailed job logs expose only generic verification failure categories. This public pointer intentionally omits private host identifiers, network endpoints, usernames, and credentials. Reopen this issue to request another read-only runtime verification.
           EOF
           )
 
