@@ -1,5 +1,6 @@
 package io.github.son1004007.codexremote.workspace;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,6 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/workspaces")
+@ConditionalOnProperty(name = "gateway.agent.mode", havingValue = "codex")
 public class WorkspaceController {
 
     private final WorkspaceService workspaces;
