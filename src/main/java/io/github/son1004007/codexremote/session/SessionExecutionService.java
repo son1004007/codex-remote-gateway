@@ -37,7 +37,11 @@ public class SessionExecutionService {
         Future<?> future = executor.submit(() -> executeTurn(state, input));
         state.setFuture(future);
         if (state.cancelRequested()) {
-            future.cancel(true);
+            boolean cancelled = future.cancel(true);
+            if (cancelled && !state.started()) {
+                cancelSessionBestEffort(sessionId);
+                state.markCancelled();
+            }
         }
         return state.snapshot();
     }
@@ -55,7 +59,11 @@ public class SessionExecutionService {
             state.requestCancel();
             Future<?> future = state.future();
             if (future != null) {
-                future.cancel(true);
+                boolean cancelled = future.cancel(true);
+                if (cancelled && !state.started()) {
+                    cancelSessionBestEffort(sessionId);
+                    state.markCancelled();
+                }
             }
             return state.snapshot();
         }
@@ -69,7 +77,11 @@ public class SessionExecutionService {
     }
 
     private void executeTurn(ExecutionState state, String input) {
+        state.markStarted();
         try {
+            if (state.cancelRequested()) {
+                return;
+            }
             sessions.submit(state.sessionId(), input);
             if (state.cancelRequested()) {
                 state.markCancelled();
@@ -84,16 +96,20 @@ public class SessionExecutionService {
             }
         } finally {
             if (state.cancelRequested()) {
-                try {
-                    AgentSession session = sessions.get(state.sessionId());
-                    if (session.status() == SessionStatus.ACTIVE) {
-                        sessions.cancel(state.sessionId());
-                    }
-                } catch (RuntimeException ignored) {
-                    // Cancellation is best effort; the event timeline retains provider errors.
-                }
+                cancelSessionBestEffort(state.sessionId());
                 state.markCancelled();
             }
+        }
+    }
+
+    private void cancelSessionBestEffort(String sessionId) {
+        try {
+            AgentSession session = sessions.get(sessionId);
+            if (session.status() == SessionStatus.ACTIVE) {
+                sessions.cancel(sessionId);
+            }
+        } catch (RuntimeException ignored) {
+            // Cancellation is best effort; provider/session errors remain visible through state/events.
         }
     }
 
@@ -132,6 +148,7 @@ public class SessionExecutionService {
         private volatile String error;
         private volatile Future<?> future;
         private volatile boolean cancelRequested;
+        private volatile boolean started;
 
         private ExecutionState(String sessionId) {
             this.sessionId = sessionId;
@@ -144,6 +161,7 @@ public class SessionExecutionService {
             this.startedAt = Instant.now();
             this.status = status;
             this.finishedAt = this.startedAt;
+            this.started = true;
         }
 
         static ExecutionState cancelled(String sessionId) {
@@ -167,6 +185,14 @@ public class SessionExecutionService {
 
         boolean cancelRequested() {
             return cancelRequested;
+        }
+
+        boolean started() {
+            return started;
+        }
+
+        void markStarted() {
+            started = true;
         }
 
         Future<?> future() {
