@@ -73,3 +73,30 @@ Unrestricted root execution is not an acceptable baseline.
 Status: `CONFIRMED`
 
 The first usable system will prove one workspace and one Codex session before adding multi-agent task graphs, shared artifacts, parallel execution, or orchestration workflows.
+
+## D-011: Each server owns its own Codex GUI instance
+
+Status: `CONFIRMED`
+
+The primary product topology is independent per-server operation, not a mandatory central controller.
+
+Each managed Linux server runs its own gateway instance, local Codex runtime, and local workspace boundary. A PC or mobile browser connects to that server's GUI and controls that server's Codex instance directly.
+
+GitHub provides durable source/change evidence and AI handoff between ChatGPT and Codex, but it is not required to route every interactive browser turn through a central service.
+
+The first runtime targets are the existing primary IDC Linux server and the existing RTX2080 Linux server. Host identifiers, addresses, credentials, and private routing details remain outside this public repository.
+
+Rationale:
+
+- failure or maintenance of one server must not disable control of the other;
+- workspaces and Codex execution should stay on the server that owns them;
+- the browser GUI should remain useful even without multi-server orchestration;
+- central orchestration remains an optional higher-level feature rather than the core dependency.
+
+## D-012: Authenticate before remote network exposure
+
+Status: `CONFIRMED`
+
+The first browser-control slice remains loopback/private-network bound. Public or broadly reachable browser access must not be enabled until an authenticated HTTPS ingress is implemented and verified.
+
+This ordering prevents the Codex control API, prompts, workspace metadata, and Git inspection endpoints from becoming an unauthenticated remote administration surface.

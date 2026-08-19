@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Remote Gateway</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Codex Remote Gateway</h1>
+      <p class="muted">Direct browser control for the Codex instance on this server</p>
+    </div>
+    <div id="healthBadge" class="badge">connecting</div>
+  </header>
+
+  <div class="warning">
+    This UI has no public authentication yet. Keep the gateway on loopback/private network until the authentication phase is complete.
+  </div>
+
+  <main class="layout">
+    <aside class="panel sidebar">
+      <section>
+        <div class="section-title">Workspace</div>
+        <select id="workspaceSelect" aria-label="Workspace"></select>
+        <button id="newSessionButton" class="primary full">New session</button>
+      </section>
+
+      <section>
+        <div class="section-row">
+          <div class="section-title">Sessions</div>
+          <button id="refreshSessionsButton" class="small">Refresh</button>
+        </div>
+        <div id="sessionList" class="session-list"></div>
+      </section>
+    </aside>
+
+    <section class="panel chat-panel">
+      <div class="chat-header">
+        <div>
+          <div class="section-title">Session</div>
+          <div id="sessionMeta" class="muted">Select or create a session</div>
+        </div>
+        <div class="chat-actions">
+          <span id="executionBadge" class="badge neutral">idle</span>
+          <button id="cancelButton" class="danger" disabled>Stop</button>
+        </div>
+      </div>
+
+      <div id="timeline" class="timeline empty-state">No session selected.</div>
+
+      <form id="promptForm" class="composer">
+        <textarea id="promptInput" rows="4" placeholder="Tell Codex what to do..." disabled></textarea>
+        <div class="composer-row">
+          <span id="promptHint" class="muted">Select a session first.</span>
+          <button id="sendButton" type="submit" class="primary" disabled>Send</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="panel git-panel">
+      <div class="section-row">
+        <div class="section-title">Git</div>
+        <button id="refreshGitButton" class="small">Refresh</button>
+      </div>
+      <div class="tabs">
+        <button id="statusTab" class="tab active">Status</button>
+        <button id="diffTab" class="tab">Diff</button>
+        <button id="stagedTab" class="tab">Staged</button>
+      </div>
+      <pre id="gitOutput" class="git-output">Select a Git workspace.</pre>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

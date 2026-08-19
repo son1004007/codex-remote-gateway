@@ -18,9 +18,11 @@ import java.util.List;
 public class SessionController {
 
     private final AgentSessionPort sessions;
+    private final SessionExecutionService executions;
 
-    public SessionController(AgentSessionPort sessions) {
+    public SessionController(AgentSessionPort sessions, SessionExecutionService executions) {
         this.sessions = sessions;
+        this.executions = executions;
     }
 
     @PostMapping
@@ -42,16 +44,22 @@ public class SessionController {
     }
 
     @PostMapping("/{sessionId}/messages")
-    public SessionResponse submit(
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public SessionExecutionService.ExecutionSnapshot submit(
             @PathVariable String sessionId,
             @Valid @RequestBody SubmitMessageRequest request
     ) {
-        return SessionResponse.from(sessions.submit(sessionId, request.input()));
+        return executions.submit(sessionId, request.input());
+    }
+
+    @GetMapping("/{sessionId}/execution")
+    public SessionExecutionService.ExecutionSnapshot execution(@PathVariable String sessionId) {
+        return executions.get(sessionId);
     }
 
     @PostMapping("/{sessionId}/cancel")
-    public SessionResponse cancel(@PathVariable String sessionId) {
-        return SessionResponse.from(sessions.cancel(sessionId));
+    public SessionExecutionService.ExecutionSnapshot cancel(@PathVariable String sessionId) {
+        return executions.cancel(sessionId);
     }
 
     public record CreateSessionRequest(@NotBlank String workspaceId) {

@@ -82,3 +82,27 @@ Private infrastructure planning:
 Reason:
 
 These corrections are prerequisites for meaningful private-host E2E validation. They do not constitute a claim that either private target has been deployed or authenticated.
+
+## 2026-08-19 — Per-server Codex Web UI vertical slice
+
+- Clarified the primary topology: each Linux target owns an independent gateway + local Codex + local workspaces; a central controller is not required for direct operation.
+- Added responsive browser controls for workspace/session selection, prompt submission, execution state, event timeline, best-effort stop, and read-only Git inspection.
+- Changed browser-facing prompt submission to asynchronous execution so closing or reconnecting the browser request does not define the Codex turn lifetime.
+- Added execution-state polling and preserved one-turn-at-a-time semantics per session.
+- Added fixed-command, non-shell Git status/diff inspection with workspace real-path enforcement, timeout, and bounded response size.
+- Preserved loopback/private binding because browser authentication is not implemented yet.
+- Updated the real-Codex smoke path to check the Web UI and asynchronous two-turn resume.
+
+Independent QA findings during this slice:
+
+1. `CONFIRMED` test dependency error: an initial controller test referenced Jackson Databind directly although it was not on the test classpath. Replaced the dependency with bounded test-side parsing.
+2. `CONFIRMED` MockMvc welcome-page mismatch: `/` correctly forwarded to `index.html`, but the test incorrectly expected the forwarded response body to already contain the static resource. Split the assertion into welcome-page forwarding and direct static-resource body checks.
+3. `CONFIRMED` pre-start cancel race: a turn cancelled after execution state creation but before worker start could remain indefinitely in `CANCEL_REQUESTED`. Added start tracking and explicit cancelled-state closure for the race.
+4. `CONFIRMED` Git worktree compatibility: `.git` may be a file rather than a directory. Repository detection now accepts either form.
+5. `CONFIRMED` large diff memory risk: reading an arbitrarily large temporary Git output with `readAllBytes()` defeated the response bound. The service now reads at most the configured response limit plus one byte and marks truncation.
+
+Runtime status at this log entry:
+
+- PR #3 remains under CI/review.
+- `.deploy/trigger` has not been changed.
+- Neither private target is called validated until the final tested SHA is deployed and the host-local smoke passes on primary then secondary.
