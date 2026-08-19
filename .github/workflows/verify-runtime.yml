@@ -34,17 +34,30 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
   verify-primary:
-    name: Verify primary runtime
+    name: Verify primary runtime (RTX2080)
     needs: resolve
     runs-on: ubuntu-latest
     environment: server-primary
     outputs:
       deployed_sha: ${{ steps.verify.outputs.deployed_sha }}
     steps:
-      - name: Checkout verifier
+      - name: Checkout verifier and target config
         uses: actions/checkout@v5
 
-      - name: Configure SSH
+      - name: Load primary target
+        run: |
+          set -euo pipefail
+          source scripts/load-server-target.sh
+          load_server_target server-primary
+          {
+            echo "SSH_HOST=$SSH_HOST"
+            echo "SSH_PORT=$SSH_PORT"
+            echo "SSH_USER=$SSH_USER"
+            echo "TARGET_NAME=$TARGET_NAME"
+            echo "TARGET_RUNTIME=$TARGET_RUNTIME"
+          } >> "$GITHUB_ENV"
+
+      - name: Configure SSH authentication
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
@@ -60,15 +73,12 @@ jobs:
       - name: Verify deployed SHA, health, UI, and prior real-Codex smoke
         id: verify
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
           REMOTE_DIR: ${{ vars.REMOTE_DIR }}
           EXPECTED_SHA: ${{ needs.resolve.outputs.expected_sha }}
         run: bash scripts/verify-remote-runtime.sh primary
 
   verify-secondary:
-    name: Verify secondary runtime
+    name: Verify secondary runtime (IDC data1)
     needs: [resolve, verify-primary]
     if: always() && needs.resolve.result == 'success'
     runs-on: ubuntu-latest
@@ -76,10 +86,23 @@ jobs:
     outputs:
       deployed_sha: ${{ steps.verify.outputs.deployed_sha }}
     steps:
-      - name: Checkout verifier
+      - name: Checkout verifier and target config
         uses: actions/checkout@v5
 
-      - name: Configure SSH
+      - name: Load secondary target
+        run: |
+          set -euo pipefail
+          source scripts/load-server-target.sh
+          load_server_target server-secondary
+          {
+            echo "SSH_HOST=$SSH_HOST"
+            echo "SSH_PORT=$SSH_PORT"
+            echo "SSH_USER=$SSH_USER"
+            echo "TARGET_NAME=$TARGET_NAME"
+            echo "TARGET_RUNTIME=$TARGET_RUNTIME"
+          } >> "$GITHUB_ENV"
+
+      - name: Configure SSH authentication
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
@@ -95,9 +118,6 @@ jobs:
       - name: Verify deployed SHA, health, UI, and prior real-Codex smoke
         id: verify
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
           REMOTE_DIR: ${{ vars.REMOTE_DIR }}
           EXPECTED_SHA: ${{ needs.resolve.outputs.expected_sha }}
         run: bash scripts/verify-remote-runtime.sh secondary
@@ -126,12 +146,12 @@ jobs:
 
           - Overall: **$overall**
           - Expected deployment SHA: \`$EXPECTED_SHA\`
-          - Primary configured target: \`$PRIMARY_RESULT\`
-          - Secondary configured target: \`$SECONDARY_RESULT\`
+          - Primary target (RTX2080): \`$PRIMARY_RESULT\`
+          - Secondary target (IDC data1): \`$SECONDARY_RESULT\`
           - Checks: deployed SHA, Actuator health, browser UI/workspace API, prior real-Codex two-turn smoke/thread evidence
           - Workflow run: \`${GITHUB_RUN_ID}\`
 
-          Detailed job logs expose only generic verification failure categories. This public pointer intentionally omits private host identifiers, network endpoints, usernames, and credentials. Reopen this issue to request another read-only runtime verification.
+          Host, port, and user are versioned as non-secret deployment metadata in \`config/server-targets.properties\`. Authentication keys and pinned SSH host keys remain GitHub Environment secrets.
           EOF
           )
 
