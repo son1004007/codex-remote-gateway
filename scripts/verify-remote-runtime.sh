@@ -10,12 +10,18 @@ fail_local() {
   exit 1
 }
 
-[ -n "${SSH_HOST:-}" ] || fail_local missing-ssh-host
-[ -n "${SSH_PORT:-}" ] || fail_local missing-ssh-port
-[ -n "${SSH_USER:-}" ] || fail_local missing-ssh-user
-[ -n "${EXPECTED_SHA:-}" ] || fail_local missing-expected-sha
-[ -s "$key_file" ] || fail_local missing-ssh-key
-[ -s "$HOME/.ssh/known_hosts" ] || fail_local missing-known-hosts
+missing=()
+[ -n "${SSH_HOST:-}" ] || missing+=(ssh-host)
+[ -n "${SSH_PORT:-}" ] || missing+=(ssh-port)
+[ -n "${SSH_USER:-}" ] || missing+=(ssh-user)
+[ -n "${EXPECTED_SHA:-}" ] || missing+=(expected-sha)
+[ -s "$key_file" ] || missing+=(ssh-key)
+[ -s "$HOME/.ssh/known_hosts" ] || missing+=(known-hosts)
+
+if [ "${#missing[@]}" -gt 0 ]; then
+  missing_csv=$(IFS=,; printf '%s' "${missing[*]}")
+  fail_local "missing-config:$missing_csv"
+fi
 
 case "$SSH_PORT" in
   *[!0-9]*|'') fail_local invalid-ssh-port ;;
