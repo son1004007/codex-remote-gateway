@@ -1,6 +1,6 @@
 # Current State
 
-Last reviewed: 2026-08-17
+Last reviewed: 2026-08-19
 
 ## Repository status
 
@@ -19,6 +19,23 @@ Last reviewed: 2026-08-17
 - `IMPLEMENTED`: Deployment is a human approval gate by default; `autoDeploy=true` must be explicit.
 - `IMPLEMENTED`: Workflow worker output requires a structured `WORKFLOW_RESULT` marker; missing markers fail closed as `BLOCKED`.
 - `IMPLEMENTED`: UBI 9 + Node.js 22 + Java 21 + pinned Codex CLI container definition and deployment automation exist.
+
+## Browser Codex control
+
+PR: `#3 Add first browser Codex control vertical slice`
+
+- `IMPLEMENTED ON PR #3`: responsive PC/mobile browser UI is served from the gateway root.
+- `IMPLEMENTED ON PR #3`: direct-child workspace discovery is available in Codex mode without accepting arbitrary filesystem paths.
+- `IMPLEMENTED ON PR #3`: session create/list/select/reconnect and prompt submission are available from the browser.
+- `IMPLEMENTED ON PR #3`: browser prompt requests enqueue a Codex turn on a Java 21 virtual thread and return `202`, so the HTTP request/browser connection does not own the entire turn lifetime.
+- `IMPLEMENTED ON PR #3`: execution state can be polled as `IDLE`, `RUNNING`, `CANCEL_REQUESTED`, `SUCCEEDED`, `FAILED`, or `CANCELLED`.
+- `IMPLEMENTED ON PR #3`: cancellation is best effort and closes the pre-start cancellation race, but the underlying Codex App Server client still cannot guarantee interruption after every provider operation has begun.
+- `IMPLEMENTED ON PR #3`: session events are rendered as a browser timeline; model/user text is inserted with DOM `textContent`, not trusted HTML.
+- `IMPLEMENTED ON PR #3`: read-only Git status, working-tree diff, and staged diff APIs/UI use fixed ProcessBuilder arguments, no browser shell, a timeout, and bounded returned output.
+- `IMPLEMENTED ON PR #3`: Git worktree `.git` files are recognized as repositories.
+- `IMPLEMENTED ON PR #3`: deployment smoke test now checks the browser root and asynchronous two-turn Codex thread resume behavior.
+- `SECURITY BOUNDARY`: the browser control surface is not authenticated yet and must remain loopback/private-network bound until authenticated HTTPS ingress is implemented.
+- `PENDING RUNTIME`: PR #3 must pass CI, then be deployed and smoke-tested independently on the primary IDC target and the secondary RTX2080 target before server-local browser control is called runtime-validated.
 
 ## Cross-model workflow
 
@@ -43,50 +60,51 @@ E2E              -> Codex for now
 - `IMPLEMENTED ON PR #2`: each stage stores bounded `stageOutputs` and `stageWorkers`, so later providers receive explicit handoff evidence instead of relying on hidden conversation memory.
 - `IMPLEMENTED ON PR #2`: plans remain provisional until `PLAN_VERIFY` independently checks them against the real repository.
 - `IMPLEMENTED ON PR #2`: Gemini review findings remain provisional until `REVIEW_VERIFY` reproduces, disproves, or fixes them using Codex and executable evidence.
-- `IMPLEMENTED ON PR #2`: Antigravity analysis runs against a disposable workspace snapshot, excluding symlinks and common build/cache directories, with bounded read-only Git status/diff context. It does not receive the mutable real checkout.
-- `IMPLEMENTED ON PR #2`: Antigravity uses `agy --prompt ... --sandbox` only when explicitly enabled. Model selection is configurable and blank by default so a Flash model is not falsely assumed before host verification.
+- `IMPLEMENTED ON PR #2`: Antigravity analysis runs against a disposable workspace snapshot and does not receive the mutable real checkout.
 - `CONFIRMED`: PR #2 CI run 64 passed Java compilation/tests, shell syntax, deployment-script tests, Compose validation, UBI image build, and image-local Codex CLI verification.
-- `PENDING RUNTIME`: an actual Linux host must have Antigravity CLI installed/authenticated and execute a real collaborative workflow before the Gemini integration is described as runtime-validated.
+- `PENDING RUNTIME`: actual Linux-host Antigravity CLI installation/authentication and collaborative execution remain unverified.
 
 ## Product direction
 
-- `CONFIRMED`: The product is a self-hosted control plane for AI-assisted development workflows on Linux.
-- `CONFIRMED`: The desired mobile human control surface is intentionally small: start work, inspect status, approve guarded actions, resume blocked work, and cancel.
+- `CONFIRMED`: The primary product is a self-hosted **per-server Codex Web GUI**. Each Linux server owns its local gateway, Codex runtime, and workspaces; a central controller is not required.
+- `CONFIRMED`: The first runtime targets are the existing primary IDC Linux server and existing RTX2080 Linux server documented in the private device inventory.
+- `CONFIRMED`: GitHub is the durable source/change/evidence handoff between ChatGPT and Codex, while the Web UI is the direct interactive control surface for the Codex instance on that server.
+- `CONFIRMED`: The desired mobile human control surface is intentionally small: choose workspace/session, send work, inspect progress/results, stop work, and inspect Git changes.
 - `CONFIRMED`: AI-generated plans and reviews are claims, not evidence.
 - `CONFIRMED`: Codex is the primary mutable-workspace implementation and execution agent.
-- `CONFIRMED`: Gemini/Antigravity is assigned independent broad-context planning, adversarial test design, and review; its findings are verified before mutation or progression.
-- `PLANNED`: deterministic deployment/E2E runner should replace AI-owned deployment mechanics.
-- `PLANNED`: PostgreSQL persistence and GitHub Issue/PR/check integration should become the durable workflow ledger.
-- `PLANNED`: bounded parallel work should wait until sequential cross-model orchestration, persistence, and isolated worktrees are stable.
+- `CONFIRMED`: Multi-agent workflow/controller features are optional higher-level capabilities and must not make the basic per-server GUI dependent on a central service.
+- `PLANNED`: authenticated HTTPS browser ingress is the next network-facing slice after local browser-control validation.
+- `PLANNED`: true incremental SSE/WebSocket event streaming should replace 1-second UI polling when the underlying Codex events are exposed safely.
+- `PLANNED`: persisted session metadata/thread mapping should permit gateway restart and later reconnect.
 
 ## Verification evidence
 
 - `CONFIRMED`: Java regression tests cover session lifecycle, API behavior, Codex App Server fake-protocol start/resume/error handling, workspace isolation, workflow deployment gates, auto-deploy behavior, and one-active-workflow-per-workspace protection.
-- `CONFIRMED`: routing tests assert `PLAN`, `TEST_DESIGN`, and `REVIEW` route to Antigravity when enabled, while verification, implementation, execution, deploy, and E2E route to Codex.
-- `CONFIRMED`: fallback tests assert every stage routes to Codex when Antigravity is disabled.
-- `CONFIRMED`: handoff tests assert Gemini plan/review evidence appears in later Codex verification prompts and per-stage provider evidence is retained.
-- `CONFIRMED`: shell/deployment-script tests and Compose validation pass with the new optional Antigravity configuration.
-- `CONFIRMED`: UBI Codex image build and pinned Codex CLI validation pass.
-- `UNKNOWN`: real Antigravity CLI non-interactive behavior on the selected private servers until host execution proves it.
+- `CONFIRMED`: routing/fallback/handoff tests cover the existing Codex + Antigravity workflow policy.
+- `CONFIRMED`: shell/deployment-script tests and Compose validation exist.
+- `CONFIRMED`: UBI Codex image build and pinned Codex CLI validation exist in CI.
+- `PENDING`: PR #3 final CI evidence after the current browser-control fixes.
+- `PENDING`: browser-control deployment and real Codex two-turn smoke evidence on both selected Linux servers.
 
 ## Important limitations
 
 - Gateway session and workflow state remain in memory and are lost on Spring Boot restart.
 - Codex thread files may persist under `CODEX_HOME`, but gateway workflow/session mappings are not persisted.
-- Antigravity installation and authentication are not currently bundled into the UBI container.
-- Antigravity analysis is stateless per stage; continuity is supplied by explicit workflow handoff evidence.
-- Antigravity receives a disposable source snapshot rather than the real `.git` directory; bounded Git status/diff text is supplied separately.
-- Existing Codex cancel semantics do not yet guarantee interruption of an already executing Codex turn.
-- HTTP authentication, browser UI, SSE/WebSocket streaming, Git status/diff UI, and PostgreSQL persistence are not implemented.
-- `DEPLOY` and `E2E` still route to Codex and should be moved to a controlled deterministic runner.
+- Browser updates currently use polling rather than SSE/WebSocket incremental streaming.
+- The session timeline currently receives the bounded/final Codex messages exposed by the existing adapter; it is not yet a full terminal-like command/event stream.
+- Existing Codex cancel semantics do not guarantee interruption of every already executing Codex turn.
+- HTTP authentication/authorization is not implemented. Keep the service loopback/private until authenticated HTTPS ingress is verified.
+- Git browser controls are read-only in the first slice; commit/push/destructive actions are intentionally not exposed yet.
+- Antigravity installation/authentication is not bundled into the current UBI image.
+- `DEPLOY` and `E2E` workflow stages still route to Codex and should later move to a controlled deterministic runner.
 - No local GPU provider exists; the current Codex integration does not use host GPUs.
 
 ## Private infrastructure status
 
 Infrastructure identifiers are intentionally not copied into this public repository.
 
-- `PLANNED`: Primary validation target is the selected Red Hat-family IDC Docker host documented in the private device inventory.
-- `PLANNED`: Secondary validation target is the selected Ubuntu RTX2080 host documented in the private device inventory.
-- `UNKNOWN`: Collaborative Antigravity runtime availability/authentication on either host.
+- `PLANNED`: Primary runtime validation is the selected Red Hat-family IDC target documented in private device inventory.
+- `PLANNED`: Secondary runtime validation is the selected Ubuntu RTX2080 target documented in private device inventory.
+- `UNKNOWN`: PR #3 runtime status on each target until deployment workflow output proves the acceptance criteria.
 
-Do not describe either target or the Codex+Antigravity workflow as deployed/validated until actual host output proves the acceptance criteria.
+Do not describe either target as browser-GUI validated until actual host deployment and smoke output proves it.
