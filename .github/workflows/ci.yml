@@ -26,7 +26,9 @@ jobs:
       - name: Verify shell syntax
         run: bash -n scripts/*.sh
       - name: Verify deployment scripts
-        run: bash scripts/test-deployment-scripts.sh
+        run: |
+          bash scripts/test-deployment-scripts.sh
+          bash scripts/test-runtime-verifier.sh
       - name: Verify Compose model
         run: docker compose -f compose.yml config >/dev/null
 
