@@ -59,13 +59,31 @@ jobs:
           fi
 
   deploy-primary:
-    name: Deploy primary test server
+    name: Deploy primary test server (RTX2080)
     needs: gate
     if: needs.gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     environment: server-primary
     steps:
-      - name: Configure SSH
+      - name: Checkout exact tested commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+
+      - name: Load primary target
+        run: |
+          set -euo pipefail
+          source scripts/load-server-target.sh
+          load_server_target server-primary
+          {
+            echo "SSH_HOST=$SSH_HOST"
+            echo "SSH_PORT=$SSH_PORT"
+            echo "SSH_USER=$SSH_USER"
+            echo "TARGET_NAME=$TARGET_NAME"
+            echo "TARGET_RUNTIME=$TARGET_RUNTIME"
+          } >> "$GITHUB_ENV"
+
+      - name: Configure SSH authentication
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
@@ -80,9 +98,6 @@ jobs:
 
       - name: Deploy exact tested commit and smoke test
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
           DEPLOY_SHA: ${{ needs.gate.outputs.sha }}
           REMOTE_DIR: ${{ vars.REMOTE_DIR }}
         run: |
@@ -140,13 +155,31 @@ jobs:
           REMOTE
 
   deploy-secondary:
-    name: Deploy secondary test server
+    name: Deploy secondary test server (IDC data1)
     needs: [gate, deploy-primary]
     if: needs.gate.outputs.deploy == 'true' && needs.deploy-primary.result == 'success'
     runs-on: ubuntu-latest
     environment: server-secondary
     steps:
-      - name: Configure SSH
+      - name: Checkout exact tested commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+
+      - name: Load secondary target
+        run: |
+          set -euo pipefail
+          source scripts/load-server-target.sh
+          load_server_target server-secondary
+          {
+            echo "SSH_HOST=$SSH_HOST"
+            echo "SSH_PORT=$SSH_PORT"
+            echo "SSH_USER=$SSH_USER"
+            echo "TARGET_NAME=$TARGET_NAME"
+            echo "TARGET_RUNTIME=$TARGET_RUNTIME"
+          } >> "$GITHUB_ENV"
+
+      - name: Configure SSH authentication
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
@@ -161,9 +194,6 @@ jobs:
 
       - name: Deploy exact tested commit and smoke test
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
           DEPLOY_SHA: ${{ needs.gate.outputs.sha }}
           REMOTE_DIR: ${{ vars.REMOTE_DIR }}
         run: |
