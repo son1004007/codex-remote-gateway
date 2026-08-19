@@ -6,7 +6,7 @@ load_server_target() {
   local file=${2:-config/server-targets.properties}
 
   case "$target" in
-    server-primary|server-secondary) ;;
+    office|idc) ;;
     *) echo "Unsupported server target: $target" >&2; return 2 ;;
   esac
 
