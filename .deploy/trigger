@@ -1,3 +1,6 @@
 # Update this file only after a complete change set is ready for automatic deployment.
 # The deployment workflow deploys the exact CI-tested commit that changes this file.
 initialized=2026-08-13
+release=codex-web-gui-v1
+source_merge=46daa5b1b8891eb7916e0c3075fb7255e0d79589
+requested=2026-08-19
