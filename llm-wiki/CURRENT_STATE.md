@@ -1,6 +1,6 @@
 # Current State
 
-Last reviewed: 2026-08-19
+Last reviewed: 2026-08-20
 
 ## Repository status
 
@@ -38,18 +38,35 @@ PR: `#3 Add first browser Codex control vertical slice` — merged.
 - `CONFIRMED`: merge SHA is `46daa5b1b8891eb7916e0c3075fb7255e0d79589`.
 - `CONFIRMED`: rollout trigger commit is `91fc451861bfc87d819c33a707e7894f7762333d` and `.deploy/trigger` was changed once for this release.
 - `SECURITY BOUNDARY`: the browser control surface is not authenticated yet and must remain loopback/private-network bound until authenticated HTTPS ingress is implemented.
-- `BLOCKED RUNTIME`: both configured server GitHub Environments currently lack `SSH_HOST`, `SSH_PORT`, and `SSH_USER`; the runtime verifier cannot reach either host until those private environment secrets are populated.
+- `PENDING RUNTIME`: browser control still requires live validation on both `office` and `idc` hosts.
+
+## Server target naming and connection metadata
+
+Use only these target identities in application code, workflows, docs, and status output:
+
+```text
+office = office RTX2080 server
+idc    = IDC data1 server
+```
+
+Do not use `primary` or `secondary` as server identities. They caused role ambiguity and are not stable properties of a host.
+
+- `IMPLEMENTED`: non-secret host/port/user/runtime metadata is versioned in `config/server-targets.properties`.
+- `IMPLEMENTED`: `scripts/load-server-target.sh` accepts only `office` or `idc`, validates the checked-in values, and exports the connection fields without shell-evaluating the file.
+- `IMPLEMENTED`: CI tests reject the legacy target names `primary` and `secondary`.
+- `CONFIRMED`: `office` is the RTX2080 host and uses the host-local runtime path.
+- `CONFIRMED`: `idc` is the IDC `data1` host and uses the Compose runtime path.
+- `SECURITY BOUNDARY`: SSH private keys and pinned `known_hosts` material remain GitHub Environment secrets. Host, port, and user are not treated as secrets.
+- `TEMPORARY INTERNAL DETAIL`: existing GitHub Environment secret scopes still have legacy names `server-primary` and `server-secondary`; workflows map `office` to the former and `idc` to the latter only to preserve existing SSH authentication material. User-facing/job/status terminology is `office`/`idc`.
 
 ## Runtime verification observability
 
-- `IMPLEMENTED`: fixed Issue #4 is the durable non-secret runtime verification pointer.
-- `IMPLEMENTED`: reopening Issue #4 by the repository owner runs a read-only primary/secondary verifier without changing `.deploy/trigger` or deployment state.
+- `IMPLEMENTED`: fixed Issue #4 is the durable runtime verification pointer.
+- `IMPLEMENTED`: reopening Issue #4 by the repository owner runs a read-only `office`/`idc` verifier without changing `.deploy/trigger` or deployment state.
 - `IMPLEMENTED`: verifier checks expected deployed SHA, health, browser UI/workspace API, and prior real-Codex two-turn/thread evidence.
-- `IMPLEMENTED`: SSH/runtime failures are reduced to privacy-safe categories rather than printing endpoints or credentials.
-- `IMPLEMENTED`: missing SSH endpoint configuration is aggregated so host/port/user omissions can be corrected in one setup pass.
-- `CONFIRMED`: runtime verification run `32253686227` reported `missing-config:ssh-host,ssh-port,ssh-user` for both primary and secondary targets.
-- `CONFIRMED`: `SSH_PRIVATE_KEY` and `SSH_KNOWN_HOSTS` files passed the verifier's non-empty preconditions on both GitHub Environments.
-- `NEXT`: populate `SSH_HOST`, `SSH_PORT`, and `SSH_USER` privately in `server-primary` and `server-secondary`, then close/reopen Issue #4 and continue from the resulting category/evidence.
+- `IMPLEMENTED`: SSH/runtime failures are reduced to safe categories rather than printing authentication material.
+- `CONFIRMED`: previous run `32253686227` failed because host/port/user were incorrectly expected as Environment secrets. That configuration model is being replaced by checked-in non-secret target metadata.
+- `NEXT`: merge the checked-in target configuration, rerun Issue #4, and diagnose the next real host/runtime condition from the resulting evidence.
 
 ## Cross-model workflow
 
@@ -81,7 +98,7 @@ E2E              -> Codex for now
 ## Product direction
 
 - `CONFIRMED`: The primary product is a self-hosted **per-server Codex Web GUI**. Each Linux server owns its local gateway, Codex runtime, and workspaces; a central controller is not required.
-- `CONFIRMED`: The first runtime targets are the existing primary IDC Linux server and existing RTX2080 Linux server documented in the private device inventory.
+- `CONFIRMED`: The first runtime targets are `office` (RTX2080) and `idc` (data1).
 - `CONFIRMED`: GitHub is the durable source/change/evidence handoff between ChatGPT and Codex, while the Web UI is the direct interactive control surface for the Codex instance on that server.
 - `CONFIRMED`: The desired mobile human control surface is intentionally small: choose workspace/session, send work, inspect progress/results, stop work, and inspect Git changes.
 - `CONFIRMED`: AI-generated plans and reviews are claims, not evidence.
@@ -99,7 +116,7 @@ E2E              -> Codex for now
 - `CONFIRMED`: UBI Codex image build and pinned Codex CLI validation exist in CI.
 - `CONFIRMED`: browser-control PR #3 final CI is PASS.
 - `CONFIRMED`: runtime verifier diagnostic PRs #5, #6, and #7 are merged with CI coverage.
-- `BLOCKED`: browser-control deployment and real Codex two-turn smoke cannot yet be validated on the two selected Linux targets because GitHub Environment host/port/user values are missing.
+- `PENDING`: live `office` and `idc` browser-control/runtime verification after the target-metadata change is merged.
 
 ## Important limitations
 
@@ -114,13 +131,9 @@ E2E              -> Codex for now
 - `DEPLOY` and `E2E` workflow stages still route to Codex and should later move to a controlled deterministic runner.
 - No local GPU provider exists; the current Codex integration does not use host GPUs.
 
-## Private infrastructure status
+## Runtime target status
 
-Infrastructure identifiers are intentionally not copied into this public repository.
-
-- `PLANNED`: Primary runtime validation is the selected Red Hat-family IDC target documented in private device inventory.
-- `PLANNED`: Secondary runtime validation is the selected Ubuntu RTX2080 target documented in private device inventory.
-- `BLOCKED`: GitHub Environment `server-primary` is missing private `SSH_HOST`, `SSH_PORT`, and `SSH_USER` values.
-- `BLOCKED`: GitHub Environment `server-secondary` is missing private `SSH_HOST`, `SSH_PORT`, and `SSH_USER` values.
+- `office`: RTX2080 host, target metadata checked in, SSH authentication material remains in its legacy Environment secret scope, live browser-GUI verification pending.
+- `idc`: data1 host, target metadata checked in, SSH authentication material remains in its legacy Environment secret scope, live browser-GUI verification pending.
 
 Do not describe either target as browser-GUI validated until actual host deployment and smoke output proves it.
