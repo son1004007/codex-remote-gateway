@@ -1,5 +1,11 @@
 # AGENTS.md
 
+## Global AI Control
+
+When GitHub access is available, before substantive work read `son1004007/ai-agent-workflow-playbook/CONTROL.md`, then return here and follow the local wiki, security and deployment rules. The global control provides cross-repository discovery, Official-Source-First behavior and shared verification policy. **This repository remains authoritative for the Codex Remote Gateway product, its implementation state and deployment contract.**
+
+If the private global control is unavailable, continue from this file and local evidence. Never weaken authentication, workspace isolation, deployment gates or approval policy because the global control cannot be read.
+
 This repository is intended to be worked on repeatedly by humans and AI coding agents.
 
 Before making changes, read these files in order:
