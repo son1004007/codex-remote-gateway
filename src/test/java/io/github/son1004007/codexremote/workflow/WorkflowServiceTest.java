@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,6 +31,21 @@ class WorkflowServiceTest {
         WorkflowSnapshot completed = awaitStatus(created.id(), WorkflowStatus.COMPLETED);
         assertThat(completed.stage()).isEqualTo(WorkflowStage.E2E);
         assertThat(completed.lastError()).isNull();
+    }
+
+    @Test
+    void retainsExplicitAcceptanceCriteria() throws Exception {
+        WorkflowSnapshot created = service.create(
+                "criteria-demo",
+                "Implement a verified change",
+                List.of("All tests pass", "No unrelated files are changed"),
+                false
+        );
+
+        WorkflowSnapshot waiting = awaitStatus(created.id(), WorkflowStatus.WAITING_APPROVAL);
+        assertThat(waiting.acceptanceCriteria())
+                .containsExactly("All tests pass", "No unrelated files are changed");
+        service.cancel(created.id());
     }
 
     @Test

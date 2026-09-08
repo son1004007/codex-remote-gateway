@@ -8,6 +8,7 @@ public record WorkflowSnapshot(
         String id,
         String workspaceId,
         String goal,
+        List<String> acceptanceCriteria,
         WorkflowStatus status,
         WorkflowStage stage,
         String worker,
