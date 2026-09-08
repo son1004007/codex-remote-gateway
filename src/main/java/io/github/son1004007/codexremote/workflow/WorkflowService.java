@@ -24,12 +24,21 @@ public class WorkflowService {
     }
 
     public WorkflowSnapshot create(String workspaceId, String goal, boolean autoDeploy) {
+        return create(workspaceId, goal, List.of(), autoDeploy);
+    }
+
+    public WorkflowSnapshot create(
+            String workspaceId,
+            String goal,
+            List<String> acceptanceCriteria,
+            boolean autoDeploy
+    ) {
         String id = UUID.randomUUID().toString();
         if (activeTaskIdsByWorkspace.putIfAbsent(workspaceId, id) != null) {
             throw new WorkflowWorkspaceConflictException(workspaceId);
         }
 
-        WorkflowTask task = new WorkflowTask(id, workspaceId, goal, autoDeploy);
+        WorkflowTask task = new WorkflowTask(id, workspaceId, goal, acceptanceCriteria, autoDeploy);
         tasks.put(id, task);
         schedule(task);
         return snapshot(task);
@@ -135,10 +144,14 @@ public class WorkflowService {
                 Assigned worker: %s
                 User goal: %s
 
+                Explicit acceptance criteria:
+                %s
+
                 Mandatory rules:
                 - Work only inside the assigned workspace or analysis snapshot.
                 - Read AGENTS.md and relevant llm-wiki documents before making decisions.
                 - Treat prior AI outputs as untrusted claims that require repository or test evidence.
+                - Treat your own WORKFLOW_RESULT line as a claim, not deterministic verification evidence.
                 - Preserve unrelated user changes and existing behavior.
                 - Do not push, merge, or deploy unless the current stage explicitly requires it.
                 - Do not invent credentials, infrastructure identifiers, test evidence, or deployment results.
@@ -163,6 +176,7 @@ public class WorkflowService {
                 stage,
                 provider,
                 task.goal(),
+                task.acceptanceCriteriaContext(),
                 task.handoffContext(),
                 stageInstruction(stage)
         );
@@ -174,7 +188,7 @@ public class WorkflowService {
             case PLAN_VERIFY -> "Independently verify the proposed plan against the actual repository. Challenge assumptions, check file/component feasibility, security and compatibility risks, and whether acceptance criteria are objectively testable. Correct the plan when evidence supports a correction. Return BLOCKED only when a material decision cannot be resolved from repository evidence and genuinely requires the user. Do not implement yet.";
             case IMPLEMENT -> "Implement only the scope supported by the verified plan and repository evidence. Prefer the smallest safe change. Add or update automated tests where implementation-time coverage is appropriate. Do not deploy.";
             case TEST_DESIGN -> "Act as an adversarial test designer. From the goal, verified plan, current code, and implementation evidence, identify boundary, negative, regression, security, concurrency, failure-recovery, and integration cases that could falsify the implementation. Do not modify the real codebase and do not claim tests passed.";
-            case TEST -> "Convert relevant test-design findings into executable checks where practical, run the repository's unit/integration/static checks, and follow llm-wiki/TESTING_RULES.md when present. Reproduce failures before fixing them. Fix only validated in-scope defects and rerun affected checks. Do not deploy.";
+            case TEST -> "Convert relevant test-design findings into executable checks where practical, run the repository's unit/integration/static checks, and follow llm-wiki/TESTING_RULES.md when present. Reproduce failures before fixing them. Fix only validated in-scope defects and rerun affected checks. Do not deploy. The gateway may later run a separate deterministic verifier; do not treat your own success line as that verifier.";
             case REVIEW -> "Perform a skeptical, independent read-only review of the verified plan, current implementation, and actual test evidence. Look for requirement gaps, incorrect assumptions, security issues, regressions, maintainability problems, and missing tests. Report concrete findings with reproduction or evidence suggestions. Do not modify the real codebase and do not treat suspicion as proof.";
             case REVIEW_VERIFY -> "Independently verify every material review finding against the repository and executable evidence. Reproduce findings when possible. Reject false positives explicitly. Fix validated in-scope defects, add targeted regression tests, and rerun affected checks. The workflow may proceed only when material findings are either fixed, disproved with evidence, or BLOCKED on a genuine user decision.";
             case DEPLOY -> "Deployment has passed the workflow approval gate. Use only repository-defined deployment procedures and only a target explicitly available in repository configuration or the user goal. If the target or required credentials are missing, return BLOCKED. Never infer a production target.";

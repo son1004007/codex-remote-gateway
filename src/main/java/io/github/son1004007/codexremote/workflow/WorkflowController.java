@@ -27,7 +27,8 @@ public class WorkflowController {
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
     public WorkflowSnapshot create(@Valid @RequestBody CreateWorkflowRequest request) {
-        return workflows.create(request.workspaceId(), request.goal(), request.autoDeploy());
+        List<String> criteria = request.acceptanceCriteria() == null ? List.of() : request.acceptanceCriteria();
+        return workflows.create(request.workspaceId(), request.goal(), criteria, request.autoDeploy());
     }
 
     @GetMapping
@@ -60,6 +61,7 @@ public class WorkflowController {
     public record CreateWorkflowRequest(
             @NotBlank String workspaceId,
             @NotBlank @Size(max = 20_000) String goal,
+            @Size(max = 20) List<@NotBlank @Size(max = 2_000) String> acceptanceCriteria,
             boolean autoDeploy
     ) {
     }

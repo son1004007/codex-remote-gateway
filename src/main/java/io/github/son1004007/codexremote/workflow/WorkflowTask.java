@@ -10,10 +10,13 @@ final class WorkflowTask {
 
     private static final int MAX_HANDOFF_STAGE_CHARS = 1_500;
     private static final int MAX_HANDOFF_TOTAL_CHARS = 12_000;
+    private static final int MAX_ACCEPTANCE_CRITERIA = 20;
+    private static final int MAX_ACCEPTANCE_CRITERION_CHARS = 2_000;
 
     private final String id;
     private final String workspaceId;
     private final String goal;
+    private final List<String> acceptanceCriteria;
     private final boolean autoDeploy;
     private final Instant createdAt;
     private final List<WorkflowEvent> events = new ArrayList<>();
@@ -29,9 +32,14 @@ final class WorkflowTask {
     private Instant updatedAt;
 
     WorkflowTask(String id, String workspaceId, String goal, boolean autoDeploy) {
+        this(id, workspaceId, goal, List.of(), autoDeploy);
+    }
+
+    WorkflowTask(String id, String workspaceId, String goal, List<String> acceptanceCriteria, boolean autoDeploy) {
         this.id = id;
         this.workspaceId = workspaceId;
         this.goal = goal;
+        this.acceptanceCriteria = normalizeAcceptanceCriteria(acceptanceCriteria);
         this.autoDeploy = autoDeploy;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
@@ -151,6 +159,7 @@ final class WorkflowTask {
                 id,
                 workspaceId,
                 goal,
+                acceptanceCriteria,
                 status,
                 stage,
                 currentWorker,
@@ -191,6 +200,17 @@ final class WorkflowTask {
         return context.toString();
     }
 
+    synchronized String acceptanceCriteriaContext() {
+        if (acceptanceCriteria.isEmpty()) {
+            return "No explicit acceptance criteria were supplied.";
+        }
+        StringBuilder value = new StringBuilder();
+        for (int index = 0; index < acceptanceCriteria.size(); index++) {
+            value.append(index + 1).append(". ").append(acceptanceCriteria.get(index)).append('\n');
+        }
+        return value.toString().stripTrailing();
+    }
+
     synchronized WorkflowStatus status() {
         return status;
     }
@@ -209,6 +229,27 @@ final class WorkflowTask {
 
     String goal() {
         return goal;
+    }
+
+    private static List<String> normalizeAcceptanceCriteria(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String value : values) {
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            String criterion = value.strip();
+            if (criterion.length() > MAX_ACCEPTANCE_CRITERION_CHARS) {
+                criterion = criterion.substring(0, MAX_ACCEPTANCE_CRITERION_CHARS);
+            }
+            normalized.add(criterion);
+            if (normalized.size() == MAX_ACCEPTANCE_CRITERIA) {
+                break;
+            }
+        }
+        return List.copyOf(normalized);
     }
 
     private static String truncate(String value) {
