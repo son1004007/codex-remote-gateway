@@ -12,11 +12,15 @@ Candidates may include a lightweight server-rendered approach or a separate SPA,
 
 ## OQ-002: Codex integration transport
 
-Status: `UNKNOWN`
+Status: `RESOLVED`
 
-Need to verify the current supported Codex/App Server integration contract and decide the production transport used by the adapter.
+Resolved by `D-013` and current implementation evidence.
 
-Do not assume `codex exec`, App Server JSON-RPC, or another interface is final until verified against current official documentation and validated in a PoC.
+The current Codex-backed `AgentSessionPort` uses `codex app-server` over JSONL stdio. `CURRENT_STATE.md` and regression tests describe the implemented initialize/thread/turn lifecycle.
+
+Do not revert this item to `UNKNOWN` merely because other Codex embedding options such as Exec or SDK exist. Those remain possible **future adapters or bounded-use interfaces**, not evidence that the current transport is undecided.
+
+Any future change to the primary transport requires a new explicit decision backed by current official documentation and executable migration/regression evidence.
 
 ## OQ-003: WebSocket vs SSE
 
