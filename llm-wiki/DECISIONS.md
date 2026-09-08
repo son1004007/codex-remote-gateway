@@ -100,3 +100,15 @@ Status: `CONFIRMED`
 The first browser-control slice remains loopback/private-network bound. Public or broadly reachable browser access must not be enabled until an authenticated HTTPS ingress is implemented and verified.
 
 This ordering prevents the Codex control API, prompts, workspace metadata, and Git inspection endpoints from becoming an unauthenticated remote administration surface.
+
+## D-013: Current Codex session transport is App Server over JSONL stdio
+
+Status: `CONFIRMED`
+
+The implemented Codex-backed `AgentSessionPort` uses `codex app-server` over JSONL stdio for the current product baseline.
+
+The adapter handles the verified current lifecycle described by source/tests and `CURRENT_STATE.md`, including initialization, thread start/resume, turn start, agent-message collection, and turn completion.
+
+This decision **resolves the original transport-selection question for the current adapter** while preserving D-004: Codex remains isolated behind a provider/runtime boundary so another supported runtime can be added later without coupling controllers or browser UI to Codex protocol details.
+
+Future work may change transport implementation only through a new explicit decision backed by current official Codex documentation, executable tests, and migration evidence.
